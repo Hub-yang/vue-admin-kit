@@ -1,0 +1,8 @@
+// 布局常量。**这里只放与项目无关的值**——品牌色、应用名这类项目身份由接入方声明，
+// 包里不持有（`BaseHeader` 的底色读 `--primary`，接入方不声明时回落到 element-plus 主色）。
+//
+// ⚠️ 这个 :root 是靠 BaseTable / BaseDialog / BaseSearchBox / BaseAddEditDialog 的非 scoped
+// <style> 间接带进消费方的，当前路由没加载这几个组件就取不到值——用它必须带 fallback。
+:root {
+  --header-h: 46px;
+}

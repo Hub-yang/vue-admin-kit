@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 本包有扫源码目录的测试（classPrefix.test.ts 用 node:fs 读文件），需要 node 类型
+    "types": ["vite/client", "node"]
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

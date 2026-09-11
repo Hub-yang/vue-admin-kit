@@ -1,0 +1,80 @@
+.el-col {
+  margin-bottom: 8px;
+}
+
+// #region 重置样式
+.custom-confirm-dialog {
+  .el-message-box__btns {
+    flex-direction: row-reverse;
+    justify-content: normal;
+
+    .el-button:nth-child(1) {
+      margin-left: 10px;
+      margin-right: 0;
+    }
+  }
+}
+
+.el-table {
+  .disabled_row {
+    background: var(--el-color-success-light-5);
+    cursor: not-allowed;
+
+    &:hover > td {
+      background: inherit !important;
+    }
+  }
+  .selected_row {
+    background: var(--el-color-success-light-5);
+
+    &:hover > td {
+      background: inherit !important;
+    }
+  }
+}
+
+// 列表横向滚动条
+.el-table__body-wrapper {
+  .el-scrollbar__bar.is-horizontal {
+    height: 14px;
+
+    .el-scrollbar__thumb {
+      position: relative;
+      &::before {
+        content: '';
+        width: 2px;
+        height: 7px;
+        background: #000;
+        position: absolute;
+        top: 50%;
+        left: calc(50% - 2px);
+        transform: translateY(-50%);
+      }
+      &::after {
+        content: '';
+        width: 2px;
+        height: 7px;
+        background: #000;
+        position: absolute;
+        top: 50%;
+        left: calc(50% + 2px);
+        transform: translateY(-50%);
+      }
+    }
+  }
+}
+
+.el-table {
+  .el-tag {
+    border: none;
+  }
+}
+// #endregion
+
+// #region 修改table样式
+.el-table tr th .cell {
+  line-height: 25px;
+  --tw-text-opacity: 1;
+  color: rgb(55 65 81 / var(--tw-text-opacity));
+}
+// #endregion

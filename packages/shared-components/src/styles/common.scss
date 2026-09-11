@@ -1,0 +1,287 @@
+@use './variables' as *;
+@use './element-ui';
+
+// #region 自定义弹窗
+.sc-custom_dialog_box {
+  padding: 0 !important;
+
+  .el-dialog__header {
+    padding: 16px !important;
+    border-bottom: 1px solid #ebeef5;
+  }
+
+  .el-dialog__body {
+    padding: 16px;
+  }
+
+  .el-dialog__footer {
+    padding: 10px 16px;
+    border-top: 1px solid #ebeef5;
+  }
+}
+
+// #endregion
+
+// #region 自定义抽屉
+.sc-custom_drawer_box {
+  padding: 0 !important;
+
+  .el-drawer__header {
+    padding: 16px !important;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #ebeef5;
+  }
+
+  .el-drawer__body {
+    padding: 16px;
+    box-sizing: border-box;
+    // overflow: hidden;
+  }
+
+  .el-drawer__footer {
+    padding: 10px 16px;
+    border-top: 1px solid #ebeef5;
+  }
+}
+// #endregion
+
+.sc-custom_dialog_box,
+.sc-custom_drawer_box {
+  .custom_dialog_close_icon,
+  .custom_dialog_fullscreen_icon {
+    color: #909399;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
+  }
+
+  .custom_dialog_fullscreen_icon {
+    font-size: 14px;
+  }
+
+  .custom_dialog_header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .title_con {
+      display: flex;
+      height: 100%;
+      align-items: center;
+      gap: 12px;
+    }
+
+    // 右上角的图标组（全屏 / 关闭）。**别改回 `span:nth-child(2)` 那种位置选择器**：
+    // 它曾经是裸的一条，作用域是整个弹窗 / 抽屉，把 el-table 树形单元格里的第 2 个 span
+    // 一起设成了 flex，子级缩进因此整个丢失（条目 20260908d，成因见
+    // `styles/selectorScope.test.ts` 的注释）
+    .custom_dialog_actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+  }
+
+  .custom_dialog_footer {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.sc-base_table_con {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .el-card {
+    border-radius: 0;
+    // 这里刻意不写 border-top：卡片上边框画不画由**消费方的容器**裁决，
+    // 契约是一个继承下来的自定义属性 --app-table-card-top-border，声明在各应用的
+    // styles/element-ui.scss 里（与同一处的左边框 --app-table-card-left-border 对称）。
+    // 曾经这里写死 `border-top: none`——列表页里那条线是主区上方那条横条（面包屑条）的 border-bottom 借给它的，
+    // 换到弹窗 / 内缩容器里上方没有相邻元素，线就断了，且不报任何错
+  }
+
+  .base_table_card {
+    flex: 1;
+    overflow: hidden;
+
+    .el-card__body {
+      height: calc(100% - 20px - 20px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .top_btn_box {
+      width: 100%;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      .btn_con {
+        height: 100%;
+        display: flex;
+        align-items: center;
+      }
+    }
+
+    .table_con {
+      flex: 1;
+      overflow: hidden;
+      &.--with_expand {
+        .el-table__placeholder {
+          width: 0;
+        }
+      }
+    }
+
+    .page_con {
+      margin-top: 20px;
+      justify-content: end;
+    }
+
+    .link_row {
+      color: var(--el-color-primary);
+      text-decoration: underline dashed;
+      cursor: pointer;
+    }
+
+    // 操作列的按钮间距统一交给 gap，不要退回 element-plus 自带的相邻兄弟选择器：
+    // `.el-button + .el-button` 只对**直接相邻的两个按钮**生效，被 el-dropdown /
+    // el-tooltip>span 包起来的按钮匹配不到，会贴死在前一个按钮上少 12px
+    // （user.vue 的「更多」、FieldTable.vue 的「删除」都是这种形态）。
+    // 下面清 margin-left 这条删了间距会叠成 24px
+    .op_btn_box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+
+      .el-button + .el-button {
+        margin-left: 0;
+      }
+    }
+  }
+}
+
+.sc-search_box {
+  width: 100%;
+
+  .el-card {
+    border-radius: 0;
+  }
+
+  .search_main {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    overflow: hidden;
+
+    .search_left {
+      flex: 1;
+      height: fit-content;
+
+      .el-col {
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        margin-bottom: 0;
+      }
+
+      .left-title {
+        white-space: nowrap;
+        text-align: right;
+        padding: 0 12px;
+      }
+
+      // 刻意不给行高：高度就等于控件自身的 32px。这里曾写死 46px（连同它的 SCSS 变量
+      // $base-top-height 一并删除，删时零消费方），32px 控件居中后上下各多出 7px，叠在
+      // 卡片 20px padding 上，肉眼看到的搜索区上下留白就是 27px 而不是 20px，
+      // 与「工具栏↔表格」「表格左右」这两处 20px 对不齐
+      &--header {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .header-left {
+          flex: 1;
+          .el-row {
+            .el-col:first-child {
+              .left-title {
+                padding-left: 0;
+              }
+            }
+          }
+        }
+
+        .header-right {
+          margin-left: 12px;
+          user-select: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          font-size: 14px;
+          color: var(--el-color-primary);
+        }
+      }
+
+      &--main {
+        padding-right: 54px;
+        // overflow 有两个作用，缺一不可：① 让本元素成为 BFC，否则下面 .el-row 的 margin-top
+        // 会与本元素折叠、跑到外面去，折叠态凭空多出 8px；② 高度过渡期间裁掉溢出内容
+        overflow: hidden;
+
+        // 行间距用 margin-top 而不是 margin-bottom：8px 要出现在 header 与第一行之间、
+        // 以及行与行之间，但**不能**出现在最后一行下方——那 8px 会叠在卡片的 20px
+        // padding-bottom 上，搜索区下边距变成 28px。改成 margin-top 后，行高之和
+        // 恰好等于 index.vue 里 mainSearchBoxHeight 的 `每行 40px`（8 + 32）
+        .el-row {
+          margin-top: 8px;
+          .el-col:first-child {
+            .left-title {
+              padding-left: 0;
+            }
+          }
+        }
+      }
+    }
+
+    // 与 search_left--header 同理不写死行高：按钮自身就是 32px，
+    // 靠 .search_main 的 align-items: flex-start 与第一行搜索控件顶对齐
+    .search_right {
+      display: flex;
+      align-items: center;
+    }
+  }
+}
+
+// #region MainForm 编辑表单：两列 CSS Grid，drawer 态降为单列
+.sc-main_form_grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+  align-items: start;
+
+  &--single {
+    grid-template-columns: 1fr;
+  }
+
+  .el-input,
+  .el-select,
+  .el-cascader,
+  .el-input-number,
+  .el-date-editor {
+    width: 100%;
+  }
+}
+// #endregion

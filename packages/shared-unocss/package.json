@@ -1,0 +1,24 @@
+{
+  "name": "@huberyyang/shared-unocss",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "共享unocss配置",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "peerDependencies": {
+    "unocss": "catalog:"
+  },
+  "dependencies": {
+    "@iconify-json/ep": "catalog:"
+  }
+}
