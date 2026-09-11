@@ -17,5 +17,8 @@
   },
   "dependencies": {
     "lodash-es": "catalog:"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
   }
 }

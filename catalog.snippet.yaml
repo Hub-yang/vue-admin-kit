@@ -19,6 +19,8 @@ catalog:
   '@types/node': ^26.3.0
   async-validator: ^4.2.5 # element-plus 的校验内核，buildFormRules 的注释引用了它的源码行为
 
+  vitest: ^4.1.11 # 两个包带着 .test.ts，不装它 typecheck 会报 Cannot find module 'vitest'
+
   # ── shared-unocss ──
   unocss: ^66.8.1
   '@iconify-json/ep': ^1.2.4 # presetIcons 的图标数据源，缺了图标会静默消失（不报错）

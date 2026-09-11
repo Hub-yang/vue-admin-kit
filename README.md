@@ -77,7 +77,20 @@ ambient 声明不随 package 依赖关系传播，只在 `package.json` 里声�
 ⚠️ **用到什么就声明什么，别指望 hoisting。** 如果你的仓库用 `node-linker=hoisted`，
 没声明的依赖也能 import 成功、本地不报错，但迁出那个包时立刻崩。
 
-### 5. 接上 UnoCSS 预设
+### 5. 让你的应用拿到全局类型 `AnyKey`
+
+包的公开类型里用到了全局类型 `AnyKey`（就是 `Record<string, any>`），它声明在
+`shared-utils/src/types/index.d.ts` 的 `declare global` 里。**ambient 声明不随依赖关系传播**，
+所以每个消费方应用都要自己 reference 一次，否则会撞上一屏 `Cannot find name 'AnyKey'`：
+
+```ts
+// apps/<你的应用>/src/types/global.d.ts
+/// <reference path="../../../../packages/shared-utils/src/types/index.d.ts" />
+```
+
+路径按你的目录深度调整（上例是 `apps/<应用>/src/types/` 这一层）。
+
+### 6. 接上 UnoCSS 预设
 
 ```ts
 // uno.config.ts
@@ -88,7 +101,7 @@ export default createUnoConfig({
 })
 ```
 
-### 6. 确认三个运行前提
+### 7. 确认三个运行前提
 
 这三条都**不会报错**，只会让东西悄悄不对：
 
