@@ -125,6 +125,10 @@ export default createUnoConfig({
 
 代价是版本管理靠 git tag 而不是 semver，升级靠重新拷贝而不是 `pnpm up`。这是有意的取舍。
 
+⚠️ **包内 `package.json` 的 `version` 字段不维护**（三个都停在 `1.0.0`），它对 `workspace:*` 依赖
+没有任何作用。**唯一的版本标识是本仓库的 git tag**，破坏性变更会升 major——查你拷的是哪一版，
+看 tag，不要看 `package.json`。
+
 ## 质量保证在哪
 
 本仓库不跑任何检查。三个包的 `lint` / `typecheck` / 单测都在上游业务仓库里执行，
