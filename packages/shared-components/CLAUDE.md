@@ -109,6 +109,19 @@ unmount 时会走完整的 leave 动画**。
 - **`BaseTable` 的 `sort-change` 事件已经透传**：`defineOptions({ inheritAttrs: false })` + `v-bind="{ ...BASE_TABLE_PROPS, ...mergedAttrs }"`（`BaseTable/index.vue:372`）把 `$attrs` 整体绑到 el-table 上，`@sort-change="xxx"` 会被 Vue 编译成 `$attrs.onSortChange`，随 `mergedAttrs` 一并 `v-bind` 到 el-table，原生事件正常触发，**不需要额外 emit**。但 `BaseTable` 本身只换 `:data`，排序不会重新请求后端——后端排序场景下，父组件要自己监听 `@sort-change` 并调用 `fetchApi`/`refreshTable()` 重新拉数据。⚠️ 这条尚无消费方验证，第一个用到 `sortable` 的页面留意。
 - **`BaseImportButton` 不再绑定 axios**：`uploadApi: (formData: FormData) => Promise<any>` 由调用方注入（对齐 `BaseTable.fetchApi` 的范式），组件内部只管发 `FormData`，不管走哪条 HTTP 客户端；`allowedExtensions` 也改成了 prop（默认 `['.xls']`），文件扩展名/大小校验逻辑抽到了 `utils/fileValidation.ts` 的 `validateImportFile()` 纯函数，方便单测。⚠️ 这两处只有单测覆盖，**没有浏览器端到端验证**，第一个真实接入方要自己核对一遍。
 
+## 本文件里指向上游仓库的路径是刻意保留的
+
+本文件与 `README.md` 里有十来处引用了上游仓库的路径（`apps/gcc-saber3/CLAUDE.md`、
+`zd-workspace`、`.scratch/roadmap/...`）。这些包会被同步到
+[发布出口](https://github.com/Hub-yang/vue-admin-kit) 给别的 monorepo 拷走，
+**在那边这些路径是死链**。
+
+**别去清理它们**（2026-09-14 评估后的取舍）：这些引用带的是「结论从哪来的」——
+某个坑在哪个页面实测出来的、某条取舍在哪个条目拍的板。对拷包的人来说路径点不开，
+但「这条是有来历的、不是随手写的」这个信息本身有价值；真要追，问上游维护者就行。
+真正的代价是清理它们要么丢掉出处，要么让 sync 从「纯拷贝」变成「带改写」——后者会让
+「两边是否一致」不再能一眼看出来，那是更贵的东西。
+
 ## 按钮的 `icon` 是组件名，不是类名——接入方必须注册 `i-ep-*` 别名
 
 `BaseBtn` / `BaseTable` 工具栏 / `BaseSearchBox` 里写的 `icon="i-ep-refresh"` 这类值，
