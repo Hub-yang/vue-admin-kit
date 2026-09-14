@@ -23,7 +23,8 @@
     "@element-plus/icons-vue": "catalog:",
     "element-plus": "catalog:",
     "lodash-es": "catalog:",
-    "vue": "catalog:"
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "dependencies": {
     "@huberyyang/shared-unocss": "workspace:*",

@@ -13,7 +13,7 @@
 - [组件](#组件)
   - [BaseTable](#basetable) · [BaseSearchBox](#basesearchbox) · [BaseAddEditDialog](#baseaddeditdialog) · [BaseDetailDialog](#basedetaildialog) · [BaseDialog](#basedialog)
   - [BaseBtn](#basebtn) · [BaseHelpTip](#basehelptip) · [BaseHeader](#baseheader) · [BaseExportButton](#baseexportbutton) · [BaseImportButton](#baseimportbutton)
-  - [PasswordStrength](#passwordstrength)
+  - [BaseMenu / BaseMenuLayout](#basemenu--basemenulayout) · [PasswordStrength](#passwordstrength) · [TransitionRouterView](#transitionrouterview)
 - [Composables](#composables)
 - [工具函数](#工具函数)
 - [配置常量](#配置常量)
@@ -34,7 +34,7 @@
 }
 ```
 
-`peerDependencies` 有 4 个，消费方必须自己显式声明：`vue`、`element-plus`、`@element-plus/icons-vue`、`lodash-es`。（**包里不依赖 axios，也不依赖 vue-router**——HTTP 客户端一律由消费方注入；唯一用到路由的 `BaseMenu` 已随零消费组件一并删除。）仓库是 hoisted 模式，不声明也能 import 成功、本地不报错，**迁出该应用时立刻崩**。
+`peerDependencies` 有 5 个，消费方必须自己显式声明：`vue`、`vue-router`、`element-plus`、`@element-plus/icons-vue`、`lodash-es`。（**不含 axios**——HTTP 客户端一律由消费方注入，见 `BaseTable.fetchApi` / `BaseImportButton.uploadApi` / `BaseExportButton.exportApi`。）仓库是 hoisted 模式，不声明也能 import 成功、本地不报错，**迁出该应用时立刻崩**。
 
 ### 引入
 
@@ -145,7 +145,9 @@ ColumnOptions[] ─────────┼── BaseTable ─────�
 | [`BaseHeader`](#baseheader) | 应用顶栏：logo + 标题 + 折叠按钮 + 中/右插槽 | 应用底座，业务页用不到 |
 | [`BaseExportButton`](#baseexportbutton) | 二次确认 → 拉文件流 → 下载 xls | 导出。请求实例由消费方注入 |
 | [`BaseImportButton`](#baseimportbutton) | 拖拽上传弹窗 + 扩展名/大小校验 | Excel 导入 |
+| [`BaseMenu`](#basemenu--basemenulayout) / `BaseMenuLayout` | 路由驱动的两级菜单，及「左菜单 + 右内容」可拖分栏布局 | 页内二级导航 |
 | [`PasswordStrength`](#passwordstrength) | 四段密码强度条 | 改密码、新建用户 |
+| [`TransitionRouterView`](#transitionrouterview) | 120ms 淡入淡出的路由过渡包装 | 路由出口 |
 
 ## 完整示例：一个标准列表页
 
@@ -724,6 +726,43 @@ export function exportPost(params) {
 
 ---
 
+### BaseMenu / BaseMenuLayout
+
+`BaseMenu` 是路由驱动的两级菜单：以 `route.path` 作为选中项，点击 `router.push`，路由变化时自动展开对应父菜单（`unique-opened`，同时只展开一个）。
+
+`BaseMenuLayout` 是「左菜单 + 右内容」的可拖拽分栏布局，左栏宽度取常量 `BASE_MENU_WIDTH`（200）。
+
+```vue
+<BaseMenuLayout :menus="menus" resizable>
+  <router-view />
+</BaseMenuLayout>
+```
+
+```ts
+import type { MenuItem } from '@huberyyang/shared-components'
+
+const menus: MenuItem[] = [
+  { id: 'base', title: '基本信息', icon: 'i-ep-document', path: '/model/base' },
+  {
+    id: 'flow',
+    title: '流程配置',
+    icon: 'i-ep-share',
+    children: [{ id: 'flow-design', title: '流程设计', icon: 'i-ep-set-up', path: '/model/flow' }],
+  },
+]
+```
+
+| 组件 | Props | 说明 |
+| --- | --- | --- |
+| `BaseMenu` | `menus: MenuItem[]` | 只有这一个 prop，无 emits、无插槽 |
+| `BaseMenuLayout` | `menus: MenuItem[]`、`resizable?: boolean`（默认 `false`） | 默认插槽是右侧主区 |
+
+`MenuItem`：`{ title, icon, id, path?, children? }`。`icon` 可以是组件也可以是图标类名字符串；叶子节点的 `index` 取 `path ?? id`，**没有 `path` 的叶子点了不会跳转**。
+
+> 两个组件当前都没有消费方。
+
+---
+
 ### PasswordStrength
 
 四段式密码强度条，`score` 为 `0` 时整体不渲染。
@@ -739,6 +778,18 @@ export function exportPost(params) {
 组件只负责显示，**分值怎么算由页面决定**（现有三处消费方各自算：`user.vue`、两个应用的 `password-dialog.vue`）。
 
 ---
+
+### TransitionRouterView
+
+给路由出口套一层 120ms 淡入淡出（`mode="out-in"` + `appear`）。无 props、无 emits，只有默认插槽。
+
+```vue
+<TransitionRouterView>
+  <component :is="Component" :key="route.path" />
+</TransitionRouterView>
+```
+
+> 当前没有消费方——两个带主布局的应用用的是各自底座里的过渡实现。
 
 ## Composables
 
@@ -766,7 +817,7 @@ const {
 
 **它不是必经之路**，用之前先看这几条硬编码能不能接受：
 
-- **主键固定叫 `id`**；成功与否走 `config/response.ts` 的 `isSuccessResponse`（认 `code === 200` 或 `success === true`），换后端改那一个文件；
+- 主键固定叫 `id`，成功码固定 `200`；
 - 删除成功后调的是 `reloadList()`（**会重置分页与搜索条件**），不是 `refreshTable()`；
 - `selectedData` 是 `computed(() => tableRef.value?.getRowSelection())`——命令式读取套 computed，**没有可追踪的响应式依赖**，只在父组件恰好频繁重渲染时才像是能用的。可靠写法仍然是给 `BaseTable` 绑 `@selection-change` 自持。
 
@@ -887,6 +938,7 @@ if (!result.valid)
 | `default_date_format2` | `'YYYY-MM-DD'` |
 | `export_date_format` | `'YYYYMMDDHHmm'`——导出文件名用 |
 | `default_dialog_table_style` | `{ maxHeight: '550px', overflowY: 'scroll' }` |
+| `BASE_MENU_WIDTH` | `200`，`BaseMenuLayout` 的左栏宽度 |
 
 ## 类型
 
@@ -901,6 +953,7 @@ if (!result.valid)
 | `Page` | `{ pageSize, currentPage, total }`——展示侧分页，本包内无人使用 |
 | `TableExpose` | `BaseTable` 暴露的方法集，给 `ref` 标类型用 |
 | `AddEditDialogExpose` | `{ refMap: Map<string, VNodeRef> }` |
+| `MenuItem` / `BaseMenuProps` / `BaseMenuLayoutProps` | 菜单相关 |
 | `FileValidationConfig` / `ValidatableFile` / `FileValidationResult` | `validateImportFile` 的入参与返回 |
 
 `AnyKey` 是全局 ambient 类型（声明在 `shared-utils`），不需要 import。
@@ -924,9 +977,15 @@ pnpm --filter @huberyyang/shared-components typecheck  # vue-tsc --noEmit
 
 **当前没有消费方的能力**（可以用，但仓库里没有活的参照，接入时请自行验证）：
 
+> ⚠️ **这张表不是删除清单。** 「没有消费方」指的是**上游这一个仓库**里没有活参照，而本包是
+> 面向多个 monorepo 分发的——别的项目正在用、或即将用其中的能力。**判断一个导出该不该留，
+> 不能只看上游有没有人用**，删掉会让下一个同步共享库的项目直接报错。
+> 真要删，先确认所有已接入的项目都不用它。
+
 | 能力 | 状态 |
 | --- | --- |
 | `BaseExportButton` / `BaseImportButton` | 无消费方，行为仅有单测覆盖、未经端到端验证 |
+| `BaseMenu` / `BaseMenuLayout` / `TransitionRouterView` | 无消费方 |
 | `useEditListPageRender` | 无消费方，列表页都是手写的 |
 | `BaseTable` 的 `sortable` 排序链路 | 事件已透传，但没有页面开过排序 |
 | `./styles/*` 子路径导出 | 无消费方，样式都是随组件带进去的 |
