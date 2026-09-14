@@ -10,7 +10,9 @@ import { describe, expect, it } from 'vitest'
  *   左缘对齐侧边栏右边框而刻意排的），折叠的点击会冒泡上来一并触发跳转
  * - 挂在 `<header>` 根上 → 右侧插槽（下拉菜单、全屏按钮）的点击同样会冒泡命中
  *
- * 本包没有 DOM 测试工具（无 `@vue/test-utils` / `happy-dom`），沿用
+ * 本包现在有 DOM 测试工具（`@vue/test-utils` + `happy-dom`，随
+ * `20260911b` 引入），但这几条**刻意仍走扫源码**：它们要守的是「某段文本必须写在某个位置」
+ * 这类源码形态的不变量，挂载后从 DOM 反推不出来（渲染完只剩结果，看不出作者写在哪一层）。 沿用
  * `BaseDetailDialog/detailText.test.ts` 的做法直接扫模板源码。
  */
 

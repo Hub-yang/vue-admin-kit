@@ -33,7 +33,9 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@vue/test-utils": "catalog:",
     "async-validator": "catalog:",
+    "happy-dom": "catalog:",
     "vitest": "catalog:"
   }
 }

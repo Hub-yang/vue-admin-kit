@@ -109,6 +109,50 @@ unmount 时会走完整的 leave 动画**。
 - **`BaseTable` 的 `sort-change` 事件已经透传**：`defineOptions({ inheritAttrs: false })` + `v-bind="{ ...BASE_TABLE_PROPS, ...mergedAttrs }"`（`BaseTable/index.vue:372`）把 `$attrs` 整体绑到 el-table 上，`@sort-change="xxx"` 会被 Vue 编译成 `$attrs.onSortChange`，随 `mergedAttrs` 一并 `v-bind` 到 el-table，原生事件正常触发，**不需要额外 emit**。但 `BaseTable` 本身只换 `:data`，排序不会重新请求后端——后端排序场景下，父组件要自己监听 `@sort-change` 并调用 `fetchApi`/`refreshTable()` 重新拉数据。⚠️ 这条尚无消费方验证，第一个用到 `sortable` 的页面留意。
 - **`BaseImportButton` 不再绑定 axios**：`uploadApi: (formData: FormData) => Promise<any>` 由调用方注入（对齐 `BaseTable.fetchApi` 的范式），组件内部只管发 `FormData`，不管走哪条 HTTP 客户端；`allowedExtensions` 也改成了 prop（默认 `['.xls']`），文件扩展名/大小校验逻辑抽到了 `utils/fileValidation.ts` 的 `validateImportFile()` 纯函数，方便单测。⚠️ 这两处只有单测覆盖，**没有浏览器端到端验证**，第一个真实接入方要自己核对一遍。
 
+## 按钮的 `icon` 是组件名，不是类名——接入方必须注册 `i-ep-*` 别名
+
+`BaseBtn` / `BaseTable` 工具栏 / `BaseSearchBox` 里写的 `icon="i-ep-refresh"` 这类值，
+**element-plus 把它交给 `<component :is>` 解析，当组件名用**。它不是 UnoCSS 类名——
+UnoCSS 生成的是 `.i-ep-refresh{...}` 类选择器，落不到 `<i-ep-refresh>` 这个元素上。
+
+所以每个接入方的 `main.ts` 都必须注册这批别名（三个应用都有这段，**别当成可以合并的重复**）：
+
+```ts
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  const kebabKey = key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+  app.component(`i-ep-${kebabKey}`, component) // 'i-ep-refresh' → Refresh
+  app.component(key, component)
+}
+```
+
+⚠️ **漏了这段是静默失效**：Vue 把未注册的组件名原样渲染成同名元素，浏览器当未知元素处理
+（`display: inline`、无内容），于是**所有按钮图标都不显示、不报任何错**。
+
+⚠️ **同一个包里两种图标写法并存，改的时候别混**：`icon="i-ep-x"`（prop，走组件解析，
+依赖上面那段注册）和 `<i class="i-ep-x">`（类名，走 UnoCSS，如 `BaseHeader` 的折叠按钮、
+`BaseHelpTip`）。前者要注册，后者不用。
+
+## 组件渲染测试：两条环境契约
+
+`BaseTable/fetchList.test.ts` 与 `selection.test.ts` 是本包仅有的两个**真正挂载组件**的测试，
+其余都是纯函数或扫源码文本。写新的渲染测试前，这两条先看：
+
+**一、element-plus 必须被 vitest inline 编译。** 根 `vitest.config.mts` 里那句
+`server.deps.inline: ['element-plus']` 删不得——vitest 默认把 node_modules externalize 成 CJS，
+element-plus 于是拿到 `runtime-core.cjs.js`，而测试代码经 Vite 走 ESM，**两份 Vue 运行时**，
+渲染时 `currentRenderingInstance` 为 null，**连 `el-button` 都挂不上**，报
+`Cannot read properties of null (reading 'ce')`。这个报错完全看不出真因，别往组件自身去查。
+
+**二、环境按文件切，不要动全局。** 根配置是 `environment: 'node'`，需要 DOM 的文件自己在
+第一行写 `// @vitest-environment happy-dom`。现有那批扫源码的测试（`classPrefix` /
+`selectorScope` / `detailText` / `titleClick` / `resetTransition`）用 `node:fs` 读文件，
+不该为渲染测试付 DOM 初始化的成本。
+
+**测法上的一条经验**：能断言「组件暴露的方法与 emit」就不要断言 DOM 结构。但
+**`el-pagination` 是例外，必须挂真的**——`20260910a` 那个双请求缺陷的成因就在它内部的
+`currentPageBridge` setter 里，stub 掉之后那个桩测的是假的（实测：删掉
+`pagination.value.current = 1`，测试报 `expected 3 times, but got 4 times`，正是缺陷的真实表现）。
+
 ## 后端响应契约只在 `config/response.ts` 里展开
 
 `pickListData` / `isSuccessResponse` / `getResponseMessage` 三个函数是本包解析后端响应的**唯一出口**。
@@ -263,8 +307,9 @@ class 的 `pl-*`」是过渡不出来的——所以模板上没有 `pl-10px` �
 `compMatchText`，字重字色都由弹窗自己裁决：套进 `v-else` 那一支的话，`render` 分支就得靠
 调用方在 render 产物里自己加 class，而**同一个 `render` 还要供 `BaseTable` 渲染表格单元格**
 （`RenderCell` 就是从 `BaseTable` 借来的），表格里不该加粗，加不得。
-`detailText.test.ts` 盯着这条不变量——它扫模板源码而不是断言 DOM，因为本包没有
-`@vue/test-utils` / `happy-dom`，为一条样式断言引两个依赖不划算，做法沿用
+`detailText.test.ts` 盯着这条不变量——它扫模板源码而不是断言 DOM。**`20260911b` 之后本包已经
+有了 `@vue/test-utils` + `happy-dom`，但这条仍该扫源码**：它守的是「`detail-info` 必须套在两个
+分支外面」这个源码形态，渲染完只剩结果，从 DOM 反推不出作者把它写在哪一层。做法沿用
 `styles/classPrefix.test.ts`。
 
 > **修订（2026-09-04）**：本节此前写着「`col.render` 分支不套 `detail-info`，查看态不加粗是

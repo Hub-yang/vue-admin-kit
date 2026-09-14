@@ -109,8 +109,28 @@ export default createUnoConfig({
 |---|---|
 | 消费方装了 `unplugin-vue-components` + `ElementPlusResolver` | 组件模板里的 `<el-table>` 等全部未注册 |
 | 装了 `sass`（**这条会直接报错，不是静默**） | `vite build` 失败：`Preprocessor dependency "sass-embedded" not found` |
-| `@iconify-json/ep` 装得上 | 所有 `i-ep-*` 图标静默消失 |
+| `@iconify-json/ep` 装得上 | `<i class="i-ep-*">` 那类图标静默消失 |
+| **注册了 `i-ep-*` 别名组件**（见下） | `el-button` 上的图标全部静默消失 |
 | 包**放在 `packages/` 下、不在 `node_modules` 里** | 同第一条，见下 |
+
+**第三、四条是两回事，别当成一条。** 包里有两种图标写法：
+
+- `<i class="i-ep-refresh">` —— 类名，靠 UnoCSS + `@iconify-json/ep` 出图
+- `icon="i-ep-refresh"` —— **element-plus 的 prop，它交给 `<component :is>` 当组件名解析**，
+  与 UnoCSS 无关。必须在你的 `main.ts` 里注册这批别名：
+
+```ts
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  const kebabKey = key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+  app.component(`i-ep-${kebabKey}`, component) // 'i-ep-refresh' → Refresh
+  app.component(key, component)
+}
+```
+
+漏了它，Vue 会把未注册的组件名原样渲染成 `<i-ep-refresh>` 这个未知元素——浏览器按
+`display: inline` + 无内容处理，**所有按钮图标都不显示，且不报任何错**。
 
 第三条需要解释：`unplugin-vue-components` 默认 `exclude: node_modules`。这三个包的组件模板里
 直接写 `<el-table>` 而不 import，靠的正是消费方那个插件去解析——一旦包被装进 `node_modules`

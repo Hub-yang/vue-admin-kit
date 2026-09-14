@@ -19,7 +19,9 @@ import { describe, expect, it } from 'vitest'
  * 内部残留态），所以 key 下移到根元素**内部**：那一层拿不到 transition hooks，仍是同步一帧
  * 完成的重建，与套上过渡之前的表现一致。
  *
- * 本包没有 DOM 测试工具（无 `@vue/test-utils` / `happy-dom`），沿用
+ * 本包现在有 DOM 测试工具（`@vue/test-utils` + `happy-dom`，随
+ * `20260911b` 引入），但这几条**刻意仍走扫源码**：它们要守的是「某段文本必须写在某个位置」
+ * 这类源码形态的不变量，挂载后从 DOM 反推不出来（渲染完只剩结果，看不出作者写在哪一层）。 沿用
  * `BaseHeader/titleClick.test.ts` 的做法直接扫模板源码。
  */
 

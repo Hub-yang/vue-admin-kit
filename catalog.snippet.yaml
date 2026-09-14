@@ -21,6 +21,8 @@ catalog:
   async-validator: ^4.2.5 # formRules.test.ts 真的 import 它；element-plus 也会传递带来，但不该依赖传递
 
   vitest: ^4.1.11 # 两个包带着 .test.ts，不装它 typecheck 会报 Cannot find module 'vitest'
+  '@vue/test-utils': ^2.5.0 # BaseTable 的两个渲染测试要它
+  happy-dom: ^20.14.5 # 同上，渲染测试的 DOM 环境
 
   # ── shared-unocss ──
   unocss: ^66.8.1

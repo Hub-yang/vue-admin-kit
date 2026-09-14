@@ -10,8 +10,9 @@ import { describe, expect, it } from 'vitest'
  * 2. `col.render` 分支从一开始就没套 `detail-info`，用户管理页的「身份证号」「账号有效期」
  *    继承 element-plus 的 `--el-text-color-regular` 显示成灰色细体
  *
- * 两次都不报错、不影响构建，只是样式悄悄不对。本包没有 DOM 测试工具（无 `@vue/test-utils` /
- * `happy-dom`，为一条样式断言引入两个依赖不划算，且会进内网离线包），所以沿用
+ * 两次都不报错、不影响构建，只是样式悄悄不对。本包现在有 DOM 测试工具（`@vue/test-utils` + `happy-dom`，随
+ * `20260911b` 引入），但这几条**刻意仍走扫源码**：它们要守的是「某段文本必须写在某个位置」
+ * 这类源码形态的不变量，挂载后从 DOM 反推不出来（渲染完只剩结果，看不出作者写在哪一层）。 所以沿用
  * `styles/classPrefix.test.ts` 的做法直接扫模板源码。
  */
 
