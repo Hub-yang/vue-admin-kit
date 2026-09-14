@@ -977,6 +977,21 @@ pnpm --filter @huberyyang/shared-components lint       # 代码风格
 pnpm --filter @huberyyang/shared-components typecheck  # vue-tsc --noEmit
 ```
 
+**测试覆盖分两类，知道哪里有网、哪里没有**：
+
+| 类型 | 覆盖到什么 |
+| --- | --- |
+| 纯函数 | `validate` / `formRules` / `response` / `fileValidation` / `componentApi` |
+| 源码扫描（守形态不变量） | `classPrefix` / `selectorScope` / `detailText` / `titleClick` / `resetTransition` |
+| **渲染测试**（真挂载组件） | **只有 `BaseTable`**：取数与分页、选中态清零契约 |
+
+⚠️ **`BaseAddEditDialog` / `BaseSearchBox` / 其余组件是零渲染覆盖**，这是已知且接受的状态
+（`20260911b` 拍板：用到有问题再补）。改它们时静态检查全绿**不代表行为没坏**，
+要在真实页面上点一遍。
+
+⚠️ 写新的渲染测试前，先读同目录 `CLAUDE.md` 的「组件渲染测试：两条环境契约」——
+element-plus 必须被 vitest inline 编译，否则连 `el-button` 都挂不上，而报错完全看不出真因。
+
 **当前没有消费方的能力**（可以用，但仓库里没有活的参照，接入时请自行验证）：
 
 > ⚠️ **这张表不是删除清单。** 「没有消费方」指的是**上游这一个仓库**里没有活参照，而本包是

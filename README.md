@@ -157,9 +157,45 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 ## 质量保证在哪
 
 本仓库不跑任何检查。三个包的 `lint` / `typecheck` / 单测都在上游业务仓库里执行，
-**同步过来的每一份都是那边全绿的状态**。包内测试主要覆盖纯函数与「用测试守约定」的源码扫描
-（类名前缀一致性、模板结构不变量），组件渲染测试目前没有——这是已知缺口，
-所以升级后请在自己的页面上实际点一遍。
+**同步过来的每一份都是那边全绿的状态**。
+
+包里带着测试，拷过去之后你可以自己跑。覆盖面分两类：
+
+- **纯函数与「用测试守约定」的源码扫描**——校验规则、表单规则构造、响应解析、类名前缀
+  一致性、模板结构不变量
+- **`BaseTable` 的渲染测试**——取数与分页、选中态清零契约。其中「改条件只发一次请求」
+  那条钉的是一个真实缺陷（停在第 3 页改条件会发两趟）
+
+⚠️ **`BaseAddEditDialog` / `BaseSearchBox` / 其余组件仍是零渲染覆盖**，改动它们请在自己的
+页面上实际点一遍。
+
+### 想在自己仓库跑这些测试
+
+包自带的渲染测试需要两项 vitest 配置，而它们在**上游仓库根**、不随 `packages/` 拷过来：
+
+```ts
+// vitest.config.mts
+import Vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  // 没有它，vitest 把 .vue 当非法 JS，报 `Failed to parse source for import analysis`
+  plugins: [Vue()],
+  test: {
+    environment: 'node', // 渲染测试自己在文件头写 `// @vitest-environment happy-dom`
+    include: ['{apps,packages}/*/src/**/*.test.ts'],
+    // 没有它，vitest 把 element-plus externalize 成 CJS，而测试代码走 ESM——两份 Vue 运行时，
+    // 连 el-button 都挂不上，报 `Cannot read properties of null (reading 'ce')`，看不出真因
+    server: { deps: { inline: ['element-plus'] } },
+  },
+})
+```
+
+devDependencies 还需要 `vitest`、`@vue/test-utils`、`happy-dom`、`@vitejs/plugin-vue`
+（前三个的版本在 [`catalog.snippet.yaml`](catalog.snippet.yaml) 里）。
+
+> 这套配置实测过：全新 monorepo 照本文档走完，`pnpm vitest run packages/shared-components`
+> 是 11 个文件 56 个用例全绿。
 
 ## 约定速查
 
