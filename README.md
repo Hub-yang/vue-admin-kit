@@ -108,6 +108,7 @@ export default createUnoConfig({
 | 前提 | 不满足时的表现 |
 |---|---|
 | 消费方装了 `unplugin-vue-components` + `ElementPlusResolver` | 组件模板里的 `<el-table>` 等全部未注册 |
+| 装了 `sass`（**这条会直接报错，不是静默**） | `vite build` 失败：`Preprocessor dependency "sass-embedded" not found` |
 | `@iconify-json/ep` 装得上 | 所有 `i-ep-*` 图标静默消失 |
 | 包**放在 `packages/` 下、不在 `node_modules` 里** | 同第一条，见下 |
 

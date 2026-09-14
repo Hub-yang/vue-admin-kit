@@ -34,7 +34,9 @@
 }
 ```
 
-`peerDependencies` 有 5 个，消费方必须自己显式声明：`vue`、`vue-router`、`element-plus`、`@element-plus/icons-vue`、`lodash-es`。（**不含 axios**——HTTP 客户端一律由消费方注入，见 `BaseTable.fetchApi` / `BaseImportButton.uploadApi` / `BaseExportButton.exportApi`。）仓库是 hoisted 模式，不声明也能 import 成功、本地不报错，**迁出该应用时立刻崩**。
+`peerDependencies` 有 6 个，消费方必须自己显式声明：`vue`、`vue-router`、`element-plus`、`@element-plus/icons-vue`、`lodash-es`、`sass`。（**不含 axios**——HTTP 客户端一律由消费方注入，见 `BaseTable.fetchApi` / `BaseImportButton.uploadApi` / `BaseExportButton.exportApi`。）
+
+⚠️ **`sass` 是构建时的硬依赖，漏了会让消费方的 `vite build` 直接失败**（`Preprocessor dependency "sass-embedded" not found`）。本包有 14 个文件写着 `<style lang="scss">`，而预处理器由**消费方的 vite** 加载——包自己不 import 它，所以是 peer 而不是 dependency。仓库是 hoisted 模式，不声明也能 import 成功、本地不报错，**迁出该应用时立刻崩**。
 
 ### 引入
 

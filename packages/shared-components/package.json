@@ -23,6 +23,7 @@
     "@element-plus/icons-vue": "catalog:",
     "element-plus": "catalog:",
     "lodash-es": "catalog:",
+    "sass": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },

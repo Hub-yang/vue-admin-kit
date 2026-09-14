@@ -14,10 +14,11 @@ catalog:
   element-plus: ^2.14.5
   '@element-plus/icons-vue': ^2.3.2
   lodash-es: ^4.18.1
+  sass: ^1.103.1 # 组件用 <style lang="scss">，缺了消费方 vite build 直接失败
 
   # ── shared-components 的 devDependencies ──
   '@types/node': ^26.3.0
-  async-validator: ^4.2.5 # element-plus 的校验内核，buildFormRules 的注释引用了它的源码行为
+  async-validator: ^4.2.5 # formRules.test.ts 真的 import 它；element-plus 也会传递带来，但不该依赖传递
 
   vitest: ^4.1.11 # 两个包带着 .test.ts，不装它 typecheck 会报 Cannot find module 'vitest'
 
