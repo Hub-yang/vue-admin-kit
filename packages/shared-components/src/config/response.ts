@@ -10,7 +10,6 @@
  * 真出现第二种响应形状时，改造的入口也是本文件。
  */
 
-/** 列表接口的解析结果 */
 export interface ListPayload {
   records: AnyKey[]
   total: number

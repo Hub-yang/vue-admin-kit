@@ -55,9 +55,8 @@ const activeSegment = computed(() => {
   }
 
   &__label {
-    // 这两条别删：三个消费点都把本组件放在弹窗 / 抽屉里，而 `common.scss` 曾有一条裸的
-    // `span:nth-child(2)` 顺手把它设成了居中 flex（条目 20260908d）。那条规则收窄后，
-    // 12px 文字在这个 14px 高的条里就不再垂直居中了
+    // 下面两条别删：本组件都放在弹窗 / 抽屉里，删了 12px 文字在这个 14px 高的条里
+    // 不再垂直居中（原先是 common.scss 一条裸 `span:nth-child(2)` 顺手给的，条目 20260908d）
     display: flex;
     align-items: center;
     height: 100%;

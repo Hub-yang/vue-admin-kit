@@ -64,3 +64,30 @@ describe('baseTable 选中态清零契约', () => {
     expect(onSelectionChange).toHaveBeenCalledWith([])
   })
 })
+
+describe('自定义行标识的选择隔离', () => {
+  it('无 id 字段的工单按 processInstanceId 独立选择和取消，表头仍支持全选', async () => {
+    const records = [
+      { processInstanceId: 'instance1', taskId: 'task1', name: '工单一' },
+      { processInstanceId: 'instance2', taskId: 'task2', name: '工单二' },
+      { processInstanceId: 'instance3', taskId: 'task3', name: '工单三' },
+    ]
+    const onSelectionChange = vi.fn()
+    const wrapper = mount(BaseTable, {
+      props: { columns, rowKey: 'processInstanceId', selection: true, showSearchBar: false, fetchApi: vi.fn(async () => ({ data: { data: { records, total: 3 } } })), onSelectionChange },
+      global: { plugins: [ElementPlus] },
+    })
+    await vi.waitFor(() => expect(wrapper.findAll('.el-table__body-wrapper input[type="checkbox"]')).toHaveLength(3))
+    const checkboxes = wrapper.findAll('.el-table__body-wrapper input[type="checkbox"]')
+    await checkboxes[0]!.setValue(true)
+    expect(onSelectionChange).toHaveBeenLastCalledWith([records[0]])
+    expect(checkboxes.map(box => (box.element as HTMLInputElement).checked)).toEqual([true, false, false])
+    await checkboxes[1]!.setValue(true)
+    expect(onSelectionChange).toHaveBeenLastCalledWith([records[0], records[1]])
+    await checkboxes[0]!.setValue(false)
+    expect(onSelectionChange).toHaveBeenLastCalledWith([records[1]])
+    await wrapper.find('.el-table__header-wrapper input[type="checkbox"]').setValue(true)
+    await vi.waitFor(() => expect(onSelectionChange.mock.lastCall?.[0]).toHaveLength(3))
+    wrapper.unmount()
+  })
+})

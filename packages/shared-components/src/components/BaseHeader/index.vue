@@ -79,20 +79,14 @@ const navStyle = computed(() => {
     <!-- 左区和折叠按钮必须包一层：折叠按钮若直接做 header 的子元素，
          header 的 justify-between 会把它甩到中间去 -->
     <div class="h-full flex flex-shrink-0 items-center">
-      <!-- 左内边距由 navStyle 给（header 只留 pr-10px），这样左区是从 x=0 起算的完整一列，
-           宽度直接等于侧边栏宽度；折叠按钮排在这一列之后，左缘就与侧边栏右边框对齐。
-
-           宽度 + 左内边距一起过渡，缓动显式写 `ease-[ease]`：UnoCSS 的 transition-* 默认给 cubic-bezier(.4,0,.2,1)，而接入方的
-           侧边栏多半写的是 `transition: width .3s`（缺省 ease）。两条曲线首尾同步、中段进度差 ~0.06，
-           乘上百来像素的行程会在「按钮左缘 vs 侧边栏右边框」这条对齐边上抖出近 10px 的错位。
-           ⚠️ 必须写成任意值 `ease-[ease]`，不能简写成 `ease`——presetWind3 的 ease-* 只认
-           linear/in/out/in-out，裸写 `ease` 不生成任何规则，是个不报错的死类。
-           ⚠️ 这里只能用 `transition-all`，不要"精确化"成 `transition-[width,padding-left]`：
-           presetWind3 的 transition-[] 不接受逗号列表（`transition-property-[]` 同样不接受），
-           实测生成空规则，又是一个不报错的死类。本元素只有这两个属性会变，all 与列举等价。
-           ⚠️ 回首页的点击也必须挂在这一层：折叠按钮是本元素的兄弟节点、在它之外，挂到外层包裹
-           容器上会被折叠按钮的点击冒泡命中，挂到 header 根上还会连右侧插槽一起命中
-           （titleClick.test.ts 为这条层级立了桩） -->
+      <!-- 左内边距由 navStyle 给（header 只留 pr-10px），左区因此是从 x=0 起算的完整一列，
+           宽度等于侧边栏宽度，折叠按钮的左缘与侧边栏右边框对齐。
+           ⚠️ 缓动必须写成任意值 `ease-[ease]`：presetWind3 的 ease-* 只认 linear/in/out/in-out，
+              裸写 `ease` 不生成任何规则（不报错的死类），曲线与接入方侧边栏的 ease 对不上会抖出错位。
+           ⚠️ 只能用 `transition-all`，不要"精确化"成 `transition-[width,padding-left]`：
+              presetWind3 的 transition-[] 不接受逗号列表，实测生成空规则，又是个死类。
+           ⚠️ 回首页的点击必须挂在这一层：挂外层会被折叠按钮的点击冒泡命中，
+              挂 header 根上会连右侧插槽一起命中 -->
       <div
         class="box-border h-full flex flex-shrink-0 items-center overflow-hidden transition-all duration-300 ease-[ease]"
         :class="{ 'cursor-pointer': titleClickable }"

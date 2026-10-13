@@ -53,7 +53,6 @@ watch(() => props.columns, (val) => {
       }
       return column
     })
-    // 检查排序
     if (items.some(column => column.renderOptions?.searchOrder)) {
       items = items.map((column) => {
         column.renderOptions ||= {}

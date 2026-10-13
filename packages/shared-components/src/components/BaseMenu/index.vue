@@ -15,16 +15,12 @@ function onMenuSelect(path: string) {
   router.push(path)
 }
 
-/**
- * 根据当前路由找到需要展开的父菜单 id 列表
- */
 function getParentIds(path: string): string[] {
   return props.menus
     .filter(menu => menu.children?.some(child => child.path === path))
     .map(menu => menu.id)
 }
 
-// 监听路由变化，确保父菜单自动展开
 watch(
   () => route.path,
   (path) => {

@@ -6,13 +6,10 @@ import { describe, expect, it } from 'vitest'
  * 本包 `styles/` 下的样式是**全局**的（`common.scss` 由各应用整包引入，不带 scoped），
  * 每一条选择器都作用在整个页面上，写宽了不报错、只在无关组件里静默生效。
  *
- * 这条测试是为一个真实 bug 立的桩（条目 20260908d）：`custom_dialog_box` /
- * `custom_drawer_box` 块里曾有一条裸的 `span:nth-child(2)`，本意是给弹窗 header 右上角
- * 那组图标排版，但它没限定父级，于是弹窗内**任意位置**的第 2 个 span 都被设成 flex。
- * el-table 的树形单元格恰好是一串 span（叶子行 `[indent][placeholder][内容]`、有子级行
- * `[expand-icon][内容]`），第 2 个被撑成块级盒子后换到下一行，而缩进靠的是留在上一行
- * inline 流里的空 span `el-table__indent`，它对下一行完全不起作用——子级缩进因此整个
- * 丢失、有子级的行被撑成两行。字典配置弹窗里的三层字典树表就是这么坏的。
+ * 这条测试是为一个真实 bug 立的桩（条目 20260908d）：`custom_dialog_box` 块里曾有一条裸的
+ * `span:nth-child(2)`，本意是排版弹窗右上角图标组，却命中了弹窗内任意位置的第 2 个 span。
+ * el-table 树形单元格正是一串 span，第 2 个被撑成块级后换行，缩进所依赖的空 span
+ * `el-table__indent` 留在上一行不再起作用——子级缩进整个丢失。
  *
  * **判据**：选择器的**最后一个** compound 是裸元素名，且它是被后代组合器（空格，或
  * 前导——即靠外层嵌套关系）命中的。这种形态的作用域是「祖先容器内的任意一个该元素」。

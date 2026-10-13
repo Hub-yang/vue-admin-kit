@@ -56,7 +56,6 @@ function onSubmitForm() {
       })
     }
     else {
-      // 聚焦到校验未通过元素
       const isError = document.querySelector('.is-error')
       if (isError) {
         isError.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -86,7 +85,6 @@ defineExpose<AddEditDialogExpose>({
 </script>
 
 <template>
-  <!-- 表单项少于16使用弹窗 -->
   <BaseDialog
     v-if="editItems.length <= 16"
     v-model:visible="visible"
@@ -112,7 +110,6 @@ defineExpose<AddEditDialogExpose>({
     </template>
   </BaseDialog>
 
-  <!-- 表单项多于16使用右侧抽屉 -->
   <el-drawer
     v-else
     v-model="visible"

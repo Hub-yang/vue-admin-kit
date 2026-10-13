@@ -45,7 +45,6 @@ export function buildFormRules(columns: ColumnOptions[]): FormRules<AnyKey> {
       }
       if (!rule?.validator) {
         const message = rule?.message || `${matchPlaceholder(renderOptions.type)}${label}`
-        // 用 validator 而不是 message + required，避免 async-validator 的默认 string 断言
         item.validator = (_rule, value, callback) => {
           callback(isEmptyInput(value) ? new Error(message as string) : undefined)
         }

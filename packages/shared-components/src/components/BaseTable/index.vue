@@ -17,22 +17,24 @@ interface ExpandProps {
 
 interface Props {
   columns: ColumnOptions[]
-  selection?: boolean // 是否有勾选列，默认false
-  selectable?: (row: AnyKey, index: number) => boolean // el-table selectable属性
-  index?: boolean // 是否有索引列，默认true
-  expandProps?: ExpandProps // 展开列配置，默认false
-  showSearchBar?: boolean // 是否有搜索区域，默认true
-  havePagination?: boolean // 是否有分页，默认true
-  opColumnWidth?: number | string // 操作栏宽度，默认100
-  fetchApi: (params: AnyKey) => any // 列表api
-  fetchExtParams?: AnyKey // 列表调用额外参数
-  handleParamsCb?: (originParams: AnyKey) => any // 参数处理api
-  isTree?: boolean // 是否为树形列表
-  treeFilterKey?: string // 树形列表检索key
-  paginationParams?: Pagination // 分页参数默认值
-  paginationOptions?: AnyKey // 分页配置项
-  rowKey?: string // 列表主键
-  searchLabelWidth?: string | number // 搜索区域标签宽度
+  selection?: boolean
+  selectable?: (row: AnyKey, index: number) => boolean
+  index?: boolean
+  expandProps?: ExpandProps
+  showSearchBar?: boolean
+  havePagination?: boolean
+  opColumnWidth?: number | string
+  fetchApi: (params: AnyKey) => any
+  fetchExtParams?: AnyKey
+  handleParamsCb?: (originParams: AnyKey) => any
+  isTree?: boolean
+  treeFilterKey?: string
+  paginationParams?: Pagination
+  paginationOptions?: AnyKey
+  rowKey?: string
+  searchLabelWidth?: string | number
+  /** 仅筛选已加载的数据，不改变分页总数或请求参数。 */
+  rowFilter?: (row: AnyKey) => boolean
 }
 
 defineOptions({
@@ -60,18 +62,19 @@ const emit = defineEmits<{
 
 defineSlots<{
   topCon?: () => any
+  search?: () => any
+  afterSearch?: () => any
   topBtn?: () => any
   default?: () => any
   expand?: (row: AnyKey) => any
   operation?: (props: AnyKey) => any
 }>()
 
-// 合并原生组件属性并设置默认值
 const $attrs = useAttrs()
 
 const mergedAttrs = computed(() => ({
   ...$attrs,
-  'row-key': $attrs['row-key'] || 'id',
+  'row-key': props.rowKey || 'id',
 }))
 
 const { refresh, refreshKey } = useRefresh()
@@ -175,14 +178,11 @@ const filteredTreeData = computed(() => {
       return []
     }
     return nodes.filter((node) => {
-      // 检查当前节点是否匹配
       const isMatch = node[key].toLowerCase().includes(treeSearchKeyWord.value.toLowerCase())
-      // 如果当前节点匹配,直接包含该节点及其所有子节点
       if (isMatch) {
         return true
       }
 
-      // 如果当前节点不匹配，但子节点有匹配的，也包含该节点
       if (node.children?.length) {
         const filteredChildren = filter(node.children)
         if (filteredChildren.length > 0) {
@@ -192,7 +192,6 @@ const filteredTreeData = computed(() => {
 
       return false
     }).map((node: AnyKey) => {
-      // 对匹配的节点处理其子节点
       if (node.children?.length) {
         const filteredChildren = filter(node.children)
         return { ...node, children: filteredChildren }
@@ -204,9 +203,12 @@ const filteredTreeData = computed(() => {
   return filter(tableData.value)
 })
 
-/**
- *  为树形列表数据添加level属性
- */
+const displayedData = computed(() => {
+  const rows = props.isTree && props.treeFilterKey ? filteredTreeData.value : tableData.value
+  return props.rowFilter ? rows.filter(props.rowFilter) : rows
+})
+watch(() => props.rowFilter, () => clearRowSelection())
+
 function initTreeDataLevels(nodes: AnyKey[], level = 1) {
   if (!nodes) {
     return
@@ -317,9 +319,6 @@ function toggleAllExpansion(nodes: AnyKey[], expanded: boolean) {
   })
 }
 
-/**
- * 存在expand列时提供全部展开方法
- */
 function expandAll() {
   if (!tableRef.value)
     return false
@@ -327,9 +326,6 @@ function expandAll() {
   toggleAllExpansion(data, true)
 }
 
-/**
- * 存在expand列时提供全部折叠方法
- */
 function collapseAll() {
   if (!tableRef.value)
     return false
@@ -373,8 +369,11 @@ defineExpose<TableExpose>({
          「初始是否展开」而非「有没有搜索能力」——传 false 的页面（model/flow-design）
          用户仍可点工具栏那个搜索按钮把它打开。改成常驻，那个页面会一直挂着一份搜索表单 -->
     <el-collapse-transition>
+      <div v-if="$slots.search" v-show="searchBarVisible">
+        <slot name="search" />
+      </div>
       <BaseSearchBox
-        v-if="searchBarVisible"
+        v-else-if="searchBarVisible"
         v-model:search="searchParams"
         :loading="searchLoading"
         :columns
@@ -383,6 +382,7 @@ defineExpose<TableExpose>({
         @on-search="onSearch"
       />
     </el-collapse-transition>
+    <slot name="afterSearch" />
 
     <el-card class="base_table_card" shadow="never">
       <div class="top_btn_box">
@@ -400,7 +400,7 @@ defineExpose<TableExpose>({
           ref="tableRef"
           v-loading.lock="loading"
           height="100%"
-          :data="(isTree && treeFilterKey) ? filteredTreeData : tableData"
+          :data="displayedData"
           v-bind="{ ...BASE_TABLE_PROPS, ...mergedAttrs }"
         >
           <template #empty>

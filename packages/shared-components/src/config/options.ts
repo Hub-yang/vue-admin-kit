@@ -1,9 +1,6 @@
 import { cloneDeep } from 'lodash-es'
 import { default_option_prop } from './baseConfig'
 
-/**
- * 获取选项标题
- */
 export function matchOptionLabel(options: AnyKey[], key: string | number, props = default_option_prop): string {
   props.value ||= 'value'
   props.label ||= 'label'

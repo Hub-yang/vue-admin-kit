@@ -1,4 +1,3 @@
-// 表单序列化
 export function serialize(data: AnyKey): string {
   const list: any[] = []
   Object.keys(data).forEach((ele) => {

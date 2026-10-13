@@ -7,7 +7,6 @@ import {
   presetWind3,
 } from 'unocss'
 
-// unocss全局配置
 export const baseUnoConfig: UserConfig = defineConfig({
   shortcuts: [
     ['detail-title', 'text-14px color-#606266 whitespace-nowrap'],
@@ -40,10 +39,7 @@ export const baseUnoConfig: UserConfig = defineConfig({
   ],
 })
 
-/**
- * 配置合并 api，方便各模块自定义 unoConfig。
- * 底层用 UnoCSS 官方 mergeConfigs，shortcuts/presets 等数组字段会拼接而非覆盖。
- */
+/** 走官方 mergeConfigs：shortcuts / presets 等数组字段是拼接，不是覆盖 */
 export function createUnoConfig(overrides: UserConfig = {}): UserConfig {
   return mergeConfigs([baseUnoConfig, overrides])
 }

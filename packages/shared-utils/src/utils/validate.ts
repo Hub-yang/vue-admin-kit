@@ -1,17 +1,10 @@
 const HTTP_URL_REGEX = /^https?:\/\/.*/
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Z\d@$!%*#?&]{8,16}$/i
 
-/**
- * URL地址
- * @param {*} s
- */
 export function isURL(s: string): boolean {
   return HTTP_URL_REGEX.test(s)
 }
 
-/**
- * 判断是否为空
- */
 export function validateNull(val: any): boolean {
   if (typeof val === 'boolean') {
     return false
@@ -35,7 +28,6 @@ export function validateNull(val: any): boolean {
   return false
 }
 
-// 密码校验规则
 export function validatePassword(_rule: any, value: any, cb: (args?: any) => void): void {
   if (!value) {
     return cb('请输入密码')
@@ -69,7 +61,6 @@ function emptyResult(rule: any, value: any, label: string): string | undefined {
   return rule?.required ? `请输入${label}` : ''
 }
 
-/** 邮箱格式校验 */
 export function validateEmail(rule: any, value: any, cb: (args?: any) => void): void {
   const empty = emptyResult(rule, value, '邮箱')
   if (empty !== undefined) {
@@ -78,7 +69,6 @@ export function validateEmail(rule: any, value: any, cb: (args?: any) => void): 
   return EMAIL_REGEX.test(String(value)) ? cb() : cb('邮箱格式不正确')
 }
 
-/** 手机号格式校验（11 位，号段 13x-19x） */
 export function validateMobile(rule: any, value: any, cb: (args?: any) => void): void {
   const empty = emptyResult(rule, value, '手机号')
   if (empty !== undefined) {

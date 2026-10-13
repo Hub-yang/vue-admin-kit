@@ -8,10 +8,9 @@ vi.mock('element-plus', () => ({
 }))
 
 /**
- * 条目 04 验证：saber3 15 处树选择器（avue `type:'tree'`）能否直接用现有的
- * `renderOptions.type: 'el-tree-select'` 链路覆盖，而不必新建 BaseTreeSelect 组件。
- * MainForm 已经把 `type` 当动态组件名透传给 `<component :is>`，这里补的是
- * 表格展示态 compMatchText 那一半——树形数据递归查找 + 自定义 props 键名。
+ * 树选择器刻意复用 `renderOptions.type: 'el-tree-select'` 链路、不新建 BaseTreeSelect 组件
+ * （条目 04）。MainForm 已把 `type` 透给 `<component :is>`，这里立的是表格展示态
+ * compMatchText 那一半的桩——树形数据递归查找 + 自定义 props 键名。
  */
 
 const treeData = [
@@ -72,10 +71,8 @@ describe('compMatchText - el-tree-select', () => {
 })
 
 /**
- * 条目 52 第 3 条：搜索区把列配置的 `renderOptions.type` 直接透给 `<component :is>`，
- * 但 `options` / `filterable` / `fit-input-width` 并不是每个控件都认——
- * 无条件下发时，日期、数字输入这类控件会把它们当成无效 DOM 属性渲染出来。
- * 能力表按 element-plus 2.14.5 的组件 d.ts 逐个核对过。
+ * 能力表按 element-plus 2.14.5 的组件 d.ts 逐个核对过（条目 52）；
+ * 为什么必须按类型裁剪见 `getControlProps` 的 JSDoc。
  */
 describe('getControlProps', () => {
   const options: Options[] = [{ label: '启用', value: 1 }]
@@ -133,5 +130,128 @@ describe('withConfirm', () => {
     confirm.mockClear()
     await withConfirm({ message: '当前修改尚未保存，是否返回？', onConfirm: () => {} })
     expect(confirm).toHaveBeenCalledWith('当前修改尚未保存，是否返回？', '提示', expect.anything())
+  })
+})
+
+/**
+ * 按 element-plus 2.14.5 message-box 的真实时序造一个假弹窗：点按钮先改写 `state.action`
+ * 再调 beforeClose；`done` 只关一次，按关闭那一刻的 action 决定 resolve / reject。
+ * 原测试把 confirm 整个 mock 成 resolve，beforeClose 一次都没执行过。
+ */
+interface FakeBox {
+  state: { action: string, confirmButtonLoading: boolean }
+  readonly closed: boolean
+  click: (action: 'confirm' | 'cancel' | 'close') => void
+}
+
+function mountFakeBox(): FakeBox {
+  const confirm = vi.mocked(ElMessageBox.confirm)
+  const state = { action: '' as string, confirmButtonLoading: false }
+  let closed = false
+  let options: any
+  confirm.mockImplementationOnce((_message, _title, opts) => new Promise((resolve, reject) => {
+    options = opts
+    const done = (): void => {
+      if (closed)
+        return
+      closed = true
+      if (state.action === 'confirm')
+        resolve('confirm')
+      else
+        reject(state.action)
+    }
+    ;(state as any).done = done
+  }) as any)
+  return {
+    state,
+    get closed() { return closed },
+    click(action: 'confirm' | 'cancel' | 'close') {
+      state.action = action
+      options.beforeClose(action, state, (state as any).done)
+    },
+  }
+}
+
+function deferred(): { promise: Promise<void>, resolve: () => void, reject: (reason?: unknown) => void } {
+  let resolve!: () => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+describe('withConfirm - 异步 onConfirm', () => {
+  it('onConfirm 未结束前确认框保持打开，确认按钮处于 loading', async () => {
+    const box = mountFakeBox()
+    const task = deferred()
+    void withConfirm({ label: '删除', onConfirm: () => task.promise })
+    box.click('confirm')
+    await Promise.resolve()
+
+    expect(box.state.confirmButtonLoading).toBe(true)
+    expect(box.closed).toBe(false)
+
+    task.resolve()
+    await vi.waitFor(() => expect(box.closed).toBe(true))
+    expect(box.state.confirmButtonLoading).toBe(false)
+  })
+
+  it('onConfirm reject 时照样关框、复位 loading，失败不逃逸成 unhandled rejection', async () => {
+    const box = mountFakeBox()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const result = withConfirm({ label: '删除', onConfirm: () => Promise.reject(new Error('504')) })
+    box.click('confirm')
+
+    await result
+    expect(box.closed).toBe(true)
+    expect(box.state.confirmButtonLoading).toBe(false)
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('504'))
+    error.mockRestore()
+  })
+
+  it('请求在飞时点取消或右上角关闭被忽略，结束后仍按「确认」收尾', async () => {
+    const box = mountFakeBox()
+    const task = deferred()
+    const onCancel = vi.fn()
+    const onCatch = vi.fn()
+    const result = withConfirm({ label: '删除', onConfirm: () => task.promise, onCancel, onCatch })
+    box.click('confirm')
+    await Promise.resolve()
+
+    box.click('cancel')
+    box.click('close')
+    expect(box.closed).toBe(false)
+    expect(onCancel).not.toHaveBeenCalled()
+
+    task.resolve()
+    await expect(result).resolves.toBe('confirm')
+    expect(onCatch).not.toHaveBeenCalled()
+  })
+
+  it('同步 onConfirm 照常执行后关框', async () => {
+    const box = mountFakeBox()
+    const onConfirm = vi.fn()
+    const result = withConfirm({ label: '删除', onConfirm })
+    box.click('confirm')
+
+    await expect(result).resolves.toBe('confirm')
+    expect(onConfirm).toHaveBeenCalledOnce()
+    expect(box.closed).toBe(true)
+  })
+
+  it('未点确认就取消时只走 onCancel / onCatch', async () => {
+    const box = mountFakeBox()
+    const onConfirm = vi.fn()
+    const onCancel = vi.fn()
+    const onCatch = vi.fn()
+    const result = withConfirm({ label: '删除', onConfirm, onCancel, onCatch })
+    box.click('cancel')
+
+    await result
+    expect(onConfirm).not.toHaveBeenCalled()
+    expect(onCancel).toHaveBeenCalledOnce()
+    expect(onCatch).toHaveBeenCalledOnce()
   })
 })

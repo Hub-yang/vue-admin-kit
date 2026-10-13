@@ -55,7 +55,6 @@ function beforeUpload(file: AnyKey) {
     return false
   }
 
-  // 验证文件是否为空
   if (file.size === 0) {
     ElMessage.error('不能上传空文件')
     return false
@@ -101,7 +100,6 @@ function onDialogClose() {
     ElMessage.warning('正在导入中，无法关闭')
     return false
   }
-  // 清空文件列表
   uploadRef.value?.clearFiles()
   selectedFile.value = null
 }

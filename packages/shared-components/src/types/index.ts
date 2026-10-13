@@ -18,6 +18,7 @@ export interface ColumnOptions {
   prop: string
   label: string
   width?: number | string
+  minWidth?: number | string
   fixed?: 'left' | 'right'
   align?: 'left' | 'center' | 'right'
   validate?: 0 | 1 // 0非必填 1必填 默认0
