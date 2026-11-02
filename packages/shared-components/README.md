@@ -2,7 +2,7 @@
 
 面向「CRUD 管理后台」的 Vue 3 组件库。核心是一条约定：**一份 `columns` 配置同时驱动搜索区、表格、新增/编辑表单、详情弹窗四处渲染**，页面只写数据来源和业务动作。
 
-> 本文档讲**怎么用**。改这个包本身要知道的坑点、样式契约与历史决策在同目录的 `CLAUDE.md`，两份刻意不重复：用的时候会撞上的事这里放一行提示并给出链接，机制细节去那边看。
+> 本文档讲**怎么用**。同目录的 [CLAUDE.md](CLAUDE.md) 是开发地的维护入口，其中引用的 `.docs/` 文档位于 gcc-workspace，不随源码包分发。消费方按本 README 接入，并遵循自己仓库的规则；不要将未分发的开发地文档视为本地已有资源。
 
 ## 目录
 
@@ -580,8 +580,19 @@ const selectedData = computed(() => tableRef.value?.getRowSelection())
 
 - `v-model:visible`、`v-model:isFullScreen`（关闭后自动复位为 `false`）。
 - Emits：`onClosed`（关闭动画结束）。
-- Slots：默认插槽是内容区；`tag` 在标题右侧；**`footer` 传了才渲染底部栏**。
+- Slots：默认插槽是内容区；`tag` 在默认标题右侧；`header` 替换默认的 `title` 与 `tag` 区域；**`footer` 传了才渲染底部栏**。
 - 内置行为：`destroy-on-close`、`draggable`、`lock-scroll`、不响应点遮罩与 ESC。其余未声明属性透传给 `el-dialog`（`append-to-body`、`@open` 等）。
+
+自定义头部使用 `header`，右侧全屏／关闭操作仍由 BaseDialog 提供。插槽不提供作用域参数（包括 Element Plus 的 `close`）；关闭拦截仍通过透传的 `before-close` 设置。`title` 仍会传给 Element Plus，可用于弹窗的无障碍名称。
+
+```vue
+<BaseDialog v-model:visible="visible" title="处理进度" :allow-full-screen="false">
+  <template #header>
+    <strong>第 1 步：准备 → 第 2 步：确认</strong>
+  </template>
+  <div>...</div>
+</BaseDialog>
+```
 
 > `defineEmits` 里还声明了 `onAddDialogSubmit`，但组件从不触发它，监听了也不会有回调。
 
@@ -858,14 +869,14 @@ withConfirm({
 
 | 选项 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `onConfirm` | `() => void` | **必填** | 点确认后执行 |
+| `onConfirm` | `() => unknown` | **必填** | 点确认后执行，返回 Promise 时等待其结束 |
 | `label` | `string` | `''` | 动作描述，拼成「是否确认{label}？」 |
 | `message` | `string` | `''` | 完整提示语，给了就不再套上面那个句式 |
 | `title` | `string` | `'提示'` | 弹窗标题 |
 | `type` | element-plus 的 `MessageType` | `'warning'` | 图标类型 |
 | `onCancel` / `onCatch` / `onFinally` | `() => void` | — | 点取消 / 关闭走 `onCancel` + `onCatch`，`onFinally` 总会执行 |
 
-⚠️ **`onConfirm` 是 async 函数时，弹窗不会等它跑完。** 组件内部是同步调用 `onConfirm()`，确认按钮的 loading 和弹窗关闭在同一轮就结束了，异步请求在后台继续。所以成功提示要写在 `onConfirm` 内部（现有页面都是这么做的），别指望「弹窗关掉 = 请求完成」。
+`onConfirm` 返回 Promise 时，确认按钮保持 loading，等待 Promise 结束后关闭弹窗；等待期间忽略取消／右上角关闭。业务成功提示与失败处理仍由 `onConfirm` 负责：内部捕获回调异常、打印错误后也会关闭弹窗，因此 `await withConfirm()` 返回或弹窗关闭不代表业务成功，`onCatch` 也不是回调异常的处理入口。
 
 ### compMatchText
 

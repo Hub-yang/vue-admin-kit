@@ -40,7 +40,8 @@ function onClosed() {
   >
     <template #header="{ close }">
       <div class="custom_dialog_header">
-        <div class="title_con">
+        <slot v-if="$slots.header" name="header" />
+        <div v-else class="title_con">
           <span>{{ props.title }}</span>
           <slot name="tag" />
         </div>
