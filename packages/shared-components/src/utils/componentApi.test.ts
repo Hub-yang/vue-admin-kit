@@ -134,27 +134,26 @@ describe('withConfirm', () => {
 })
 
 /**
- * 按 element-plus 2.14.5 message-box 的真实时序造一个假弹窗：点按钮先改写 `state.action`
- * 再调 beforeClose；`done` 只关一次，按关闭那一刻的 action 决定 resolve / reject。
- * 原测试把 confirm 整个 mock 成 resolve，beforeClose 一次都没执行过。
+ * 模拟 Element Plus 先改写 action 再进入 beforeClose 的顺序，done 在测试桩中同步结算。
+ * 进入退场后仍可模拟回调重入，覆盖销毁前的窗口。
  */
 interface FakeBox {
   state: { action: string, confirmButtonLoading: boolean }
-  readonly closed: boolean
+  readonly closing: boolean
   click: (action: 'confirm' | 'cancel' | 'close') => void
 }
 
 function mountFakeBox(): FakeBox {
   const confirm = vi.mocked(ElMessageBox.confirm)
   const state = { action: '' as string, confirmButtonLoading: false }
-  let closed = false
+  let closing = false
   let options: any
   confirm.mockImplementationOnce((_message, _title, opts) => new Promise((resolve, reject) => {
     options = opts
     const done = (): void => {
-      if (closed)
+      if (closing)
         return
-      closed = true
+      closing = true
       if (state.action === 'confirm')
         resolve('confirm')
       else
@@ -164,7 +163,7 @@ function mountFakeBox(): FakeBox {
   }) as any)
   return {
     state,
-    get closed() { return closed },
+    get closing() { return closing },
     click(action: 'confirm' | 'cancel' | 'close') {
       state.action = action
       options.beforeClose(action, state, (state as any).done)
@@ -183,32 +182,61 @@ function deferred(): { promise: Promise<void>, resolve: () => void, reject: (rea
 }
 
 describe('withConfirm - 异步 onConfirm', () => {
-  it('onConfirm 未结束前确认框保持打开，确认按钮处于 loading', async () => {
+  it('请求进行中重复确认只执行一次回调', async () => {
     const box = mountFakeBox()
     const task = deferred()
-    void withConfirm({ label: '删除', onConfirm: () => task.promise })
+    const onConfirm = vi.fn(() => task.promise)
+    const result = withConfirm({ label: '删除', onConfirm })
     box.click('confirm')
-    await Promise.resolve()
+    box.click('confirm')
 
     expect(box.state.confirmButtonLoading).toBe(true)
-    expect(box.closed).toBe(false)
+    expect(box.closing).toBe(false)
 
     task.resolve()
-    await vi.waitFor(() => expect(box.closed).toBe(true))
-    expect(box.state.confirmButtonLoading).toBe(false)
+    await Promise.resolve()
+    expect(box.closing).toBe(true)
+    await expect(result).resolves.toBe('confirm')
+    expect(onConfirm).toHaveBeenCalledOnce()
   })
 
-  it('onConfirm reject 时照样关框、复位 loading，失败不逃逸成 unhandled rejection', async () => {
+  it('请求成功后保持 loading 退场，拦截再次确认', async () => {
     const box = mountFakeBox()
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const result = withConfirm({ label: '删除', onConfirm: () => Promise.reject(new Error('504')) })
+    const onConfirm = vi.fn()
+    const result = withConfirm({ label: '删除', onConfirm })
     box.click('confirm')
 
-    await result
-    expect(box.closed).toBe(true)
-    expect(box.state.confirmButtonLoading).toBe(false)
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('504'))
-    error.mockRestore()
+    await expect(result).resolves.toBe('confirm')
+    expect(box.closing).toBe(true)
+    box.click('confirm')
+    expect(onConfirm).toHaveBeenCalledOnce()
+    expect(box.state.confirmButtonLoading).toBe(true)
+  })
+
+  it('请求失败后保持 loading 退场，重开确认框可重试', async () => {
+    const box = mountFakeBox()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const onConfirm = vi.fn().mockRejectedValueOnce(new Error('504'))
+    try {
+      const result = withConfirm({ label: '删除', onConfirm })
+      box.click('confirm')
+      await expect(result).resolves.toBe('confirm')
+      expect(box.closing).toBe(true)
+      expect(box.state.confirmButtonLoading).toBe(true)
+      box.click('confirm')
+      expect(onConfirm).toHaveBeenCalledOnce()
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('504'))
+
+      const nextBox = mountFakeBox()
+      const retry = withConfirm({ label: '删除', onConfirm })
+      expect(nextBox.state.confirmButtonLoading).toBe(false)
+      nextBox.click('confirm')
+      await expect(retry).resolves.toBe('confirm')
+      expect(onConfirm).toHaveBeenCalledTimes(2)
+    }
+    finally {
+      error.mockRestore()
+    }
   })
 
   it('请求在飞时点取消或右上角关闭被忽略，结束后仍按「确认」收尾', async () => {
@@ -222,7 +250,7 @@ describe('withConfirm - 异步 onConfirm', () => {
 
     box.click('cancel')
     box.click('close')
-    expect(box.closed).toBe(false)
+    expect(box.closing).toBe(false)
     expect(onCancel).not.toHaveBeenCalled()
 
     task.resolve()
@@ -238,7 +266,7 @@ describe('withConfirm - 异步 onConfirm', () => {
 
     await expect(result).resolves.toBe('confirm')
     expect(onConfirm).toHaveBeenCalledOnce()
-    expect(box.closed).toBe(true)
+    expect(box.closing).toBe(true)
   })
 
   it('未点确认就取消时只走 onCancel / onCatch', async () => {

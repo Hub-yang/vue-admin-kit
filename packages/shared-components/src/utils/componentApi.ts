@@ -12,7 +12,7 @@ interface WithConfirmOptions {
   message?: string
   title?: string
   type?: MessageType
-  /** 返回 Promise 时，确认按钮保持 loading 直到它 settle 才关框 */
+  /** 等待回调结束后关框，确认按钮的 loading 随弹窗销毁 */
   onConfirm: () => unknown
   onCancel?: () => void
   onCatch?: () => void
@@ -82,6 +82,9 @@ export async function withConfirm(options: WithConfirmOptions): Promise<any> {
       closeOnPressEscape: false,
       customClass: 'custom-confirm-dialog',
       beforeClose: async (actionType, instance, done) => {
+        // done 只启动退场动画，等确认框销毁前继续用 loading 拦截重入。
+        if (instance.confirmButtonLoading)
+          return
         if (actionType === 'confirm') {
           instance.confirmButtonLoading = true
           try {
@@ -91,16 +94,12 @@ export async function withConfirm(options: WithConfirmOptions): Promise<any> {
             console.error(`${error}`)
           }
           finally {
-            instance.confirmButtonLoading = false
-            // 请求在飞时点过取消/关闭会改写 action（见下方分支），不改回来就会按「取消」收尾
+            // 请求在飞时点过取消或关闭会改写 action，关框前恢复为「确认」。
             instance.action = 'confirm'
             done()
           }
         }
         else {
-          // 在飞的请求取消不了，此时关框只会丢掉 loading 反馈、让用户误以为操作已撤销
-          if (instance.confirmButtonLoading)
-            return
           if (onCancel)
             onCancel()
           done()
