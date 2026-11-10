@@ -2,7 +2,7 @@
 
 面向「CRUD 管理后台」的 Vue 3 组件库。核心是一条约定：**一份 `columns` 配置同时驱动搜索区、表格、新增/编辑表单、详情弹窗四处渲染**，页面只写数据来源和业务动作。
 
-> 本文档讲**怎么用**。同目录的 [CLAUDE.md](CLAUDE.md) 是开发地的维护入口，其中引用的 `.docs/` 文档位于 gcc-workspace，不随源码包分发。消费方按本 README 接入，并遵循自己仓库的规则；不要将未分发的开发地文档视为本地已有资源。
+> 消费方按本文档接入，并遵循自己仓库的规则。组件源码和发布记录在 [vue-admin-kit](https://github.com/Hub-yang/vue-admin-kit) 维护。同目录的 [CLAUDE.md](CLAUDE.md) 保留历史开发约定，所引用的 `.docs/` 属于 gcc-workspace。
 
 ## 目录
 

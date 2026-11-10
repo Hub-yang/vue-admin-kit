@@ -72,6 +72,20 @@ defineSlots<{
 
 const $attrs = useAttrs()
 
+// Element Plus 单独渲染表体，单元格直接追踪当前列配置，选项替换时才能更新。
+const columnsByProp = computed(() => {
+  const columns = new Map<string, ColumnOptions | undefined>()
+  for (const column of props.columns) {
+    if (column.showInTable !== 0 && column.renderOptions?.slot !== 1 && !column.render)
+      columns.set(column.prop, columns.has(column.prop) ? undefined : column)
+  }
+  return columns
+})
+
+function matchCellText(row: AnyKey, column: ColumnOptions) {
+  return compMatchText(row, columnsByProp.value.get(column.prop) ?? column)
+}
+
 const mergedAttrs = computed(() => ({
   ...$attrs,
   'row-key': props.rowKey || 'id',
@@ -426,7 +440,7 @@ defineExpose<TableExpose>({
                   :col="scope.column"
                   @link-click="$emit('onLinkClick', scope.row)"
                 />
-                <span v-else :class="[column.type === 'link' && !!compMatchText(scope.row, column) ? 'link_row' : '']" @click="column.type === 'link' ? $emit('onLinkClick', scope.row) : null">{{ compMatchText(scope.row, column) || '--' }}</span>
+                <span v-else :class="[column.type === 'link' && !!matchCellText(scope.row, column) ? 'link_row' : '']" @click="column.type === 'link' ? $emit('onLinkClick', scope.row) : null">{{ matchCellText(scope.row, column) || '--' }}</span>
               </template>
             </el-table-column>
 
