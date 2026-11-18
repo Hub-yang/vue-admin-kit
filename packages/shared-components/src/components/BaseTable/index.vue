@@ -100,6 +100,7 @@ const searchBarVisible = ref(props.showSearchBar)
 const total = ref(0)
 const tableData = ref<AnyKey[]>([])
 const loading = ref(false)
+let latestRequestId = 0
 
 const paginationOptions = computed(() => {
   const _o_ = props.paginationOptions ?? {}
@@ -108,29 +109,20 @@ const paginationOptions = computed(() => {
 
 fetchList()
 
-/**
- * 查询条件变了必须回到第 1 页，两条 watch 都要做。
- *
- * 不做的话，停在第 3 页时改条件会带着 `current=3` 去查一个可能只有 1 页的结果：
- * 先渲染一次空列表，随后 el-pagination 自己发现 `currentPage > pageCount`、把页码夹回来——
- * 而它夹回去走的是内部 `currentPageBridge` 的 setter，那里会 emit `current-change`，
- * 模板上绑的正是 `fetchList()`，于是**同一次筛选发两趟请求**，中间还闪一次空表。
- *
- * 这里从外部赋值 `pagination.current` 不经过那个 setter，不会 emit、不会多发请求。
- */
-watch(searchParams, () => {
+// 消费方可以内联传对象。保留等值快照，父组件重渲染时不会重复查询。
+const externalSearchParams = computed<AnyKey>((previous) => {
+  const next = cloneDeep(props.fetchExtParams)
+  return previous && isEqual(previous, next) ? previous : next
+})
+
+// 重置时表单和外部条件可能同时变化。先回首页再取数，避免分页器纠正越界页码时补发请求。
+watch([searchParams, externalSearchParams], () => {
   pagination.value.current = 1
   fetchList()
 }, { deep: true })
 
-watch(() => props.fetchExtParams, (val, oldVal) => {
-  if (!isEqual(val, oldVal)) {
-    pagination.value.current = 1
-    fetchList()
-  }
-}, { deep: true })
-
 async function fetchList() {
+  const requestId = ++latestRequestId
   loading.value = true
   try {
     const temp = toRaw(searchParams.value)
@@ -154,6 +146,8 @@ async function fetchList() {
     }
     lastQueryParams.value = cloneDeep(queryParams)
     const res = await props.fetchApi(queryParams)
+    if (requestId !== latestRequestId)
+      return
     // 响应形状的解析统一走 config/response.ts，不要在这里就地展开 res.data.data
     const { records: data, total: totalCount } = pickListData(res)
     total.value = totalCount
@@ -166,7 +160,8 @@ async function fetchList() {
     console.error(`${error}`)
   }
   finally {
-    loading.value = false
+    if (requestId === latestRequestId)
+      loading.value = false
   }
 }
 
@@ -292,6 +287,10 @@ function refreshTable() {
   return fetchList()
 }
 
+function applySearch(patch: AnyKey) {
+  searchParams.value = { ...searchParams.value, ...patch }
+}
+
 function reloadList() {
   pagination.value = { ...props.paginationParams }
   searchParams.value = {}
@@ -369,6 +368,7 @@ defineExpose<TableExpose>({
   getRowSelection,
   clearRowSelection,
   fetchList,
+  applySearch,
   reloadList,
   refreshTable,
   expandAll,

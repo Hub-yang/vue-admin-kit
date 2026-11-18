@@ -403,6 +403,7 @@ data = res?.data?.data?.records ?? res?.data?.data ?? []
 | --- | --- |
 | `refreshTable()` | **最常用**。重建表格 + 按当前条件重新取数，**不重置**分页与搜索条件 |
 | `fetchList()` | 只按当前条件重新取数，不重建表格 |
+| `applySearch(patch)` | 合并指定的搜索字段并同步回显，从第一页重新查询；重复传入相同值也会查询一次 |
 | `reloadList()` | 重置分页与搜索条件（会触发重新取数），相当于回到初始状态 |
 | `getRowSelection()` | 当前勾选行（命令式读取，见下方警告） |
 | `clearRowSelection()` | 清空勾选 |

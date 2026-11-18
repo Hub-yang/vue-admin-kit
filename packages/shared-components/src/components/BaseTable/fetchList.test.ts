@@ -2,9 +2,10 @@ import type { VueWrapper } from '@vue/test-utils'
 import type { Mock } from 'vitest'
 // @vitest-environment happy-dom
 import type { ColumnOptions } from '../../types'
-import { mount } from '@vue/test-utils'
-import ElementPlus from 'element-plus'
+import { flushPromises, mount } from '@vue/test-utils'
+import ElementPlus, { ElPagination } from 'element-plus'
 import { describe, expect, it, vi } from 'vitest'
+import { nextTick, reactive } from 'vue'
 import { BaseSearchBox } from '../BaseSearchBox'
 import BaseTable from './index.vue'
 
@@ -47,6 +48,50 @@ function paramsOf(fetchApi: Mock, n: number): AnyKey {
 }
 
 describe('baseTable 取数与分页', () => {
+  it.each(['旧请求先返回', '新请求先返回'])('%s时只展示最新查询，加载状态跟随最新请求', async (order) => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const first = Promise.withResolvers<unknown>()
+    const second = Promise.withResolvers<unknown>()
+    const fetchApi = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const { wrapper } = mountTable({ fetchApi, fetchExtParams: { parentId: 'A' } })
+    try {
+      await wrapper.setProps({ fetchExtParams: { parentId: 'B' } })
+      expect(fetchApi.mock.calls.map(([params]) => params.parentId)).toEqual(['A', 'B'])
+      const oldResponse = { data: { data: { records: [{ id: 'A', name: '旧查询' }], total: 12 } } }
+      const newResponse = { data: { data: { records: [{ id: 'B', name: '新查询' }], total: 3 } } }
+      const rows = () => wrapper.findAll('.el-table__body-wrapper tbody tr').map(row => row.text())
+      const isLoading = () => wrapper.find('.el-loading-mask').exists()
+      expect(isLoading()).toBe(true)
+      if (order === '旧请求先返回') {
+        first.resolve(oldResponse)
+        await flushPromises()
+        // 等待 Element Plus 遮罩退场，防止把即将移除的旧 DOM 当成仍在加载。
+        await vi.advanceTimersByTimeAsync(500)
+        expect(isLoading()).toBe(true)
+        expect(rows()).toEqual([])
+        second.resolve(newResponse)
+      }
+      else {
+        second.resolve(newResponse)
+        await flushPromises()
+        await vi.advanceTimersByTimeAsync(500)
+        expect(isLoading()).toBe(false)
+        expect(rows()).toEqual([expect.stringContaining('新查询')])
+        expect(wrapper.getComponent(ElPagination).props('total')).toBe(3)
+        first.resolve(oldResponse)
+      }
+      await flushPromises()
+      expect(rows()).toEqual([expect.stringContaining('新查询')])
+      expect(wrapper.getComponent(ElPagination).props('total')).toBe(3)
+      await vi.advanceTimersByTimeAsync(500)
+      expect(isLoading()).toBe(false)
+    }
+    finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
+  })
+
   it('挂载即发一次请求，带上默认分页参数', async () => {
     const { fetchApi } = mountTable()
     await vi.waitFor(() => expect(fetchApi).toHaveBeenCalledTimes(1))
@@ -74,6 +119,19 @@ describe('baseTable 取数与分页', () => {
     const { fetchApi } = mountTable({ fetchExtParams: { layoutId: '' } })
     await vi.waitFor(() => expect(fetchApi).toHaveBeenCalledTimes(1))
     expect(paramsOf(fetchApi, 0)).toHaveProperty('layoutId', '')
+  })
+
+  it('相同的外部条件不重查，原位修改嵌套字段时按新值查询', async () => {
+    const { wrapper, fetchApi } = mountTable({ fetchExtParams: { unit: { id: 1 } } })
+    const params = reactive({ unit: { id: 1 } })
+    await wrapper.setProps({ fetchExtParams: params })
+    expect(fetchApi).toHaveBeenCalledTimes(1)
+
+    params.unit.id = 2
+    await nextTick()
+    expect(fetchApi).toHaveBeenCalledTimes(2)
+    expect(paramsOf(fetchApi, 1)).toMatchObject({ current: 1, unit: { id: 2 } })
+    wrapper.unmount()
   })
 
   it('改搜索条件时回到第 1 页，且只发一次请求', async () => {

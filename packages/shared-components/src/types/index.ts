@@ -54,6 +54,7 @@ export interface TableExpose {
   getRowSelection: () => AnyKey[]
   clearRowSelection: () => void
   fetchList: () => Promise<void>
+  applySearch: (patch: AnyKey) => void
   reloadList: () => void
   /** 重建表格并按当前条件重拉；懒加载树表变更数据后必须用它，fetchList 清不掉 el-table 的懒加载缓存 */
   refreshTable: () => Promise<void>
