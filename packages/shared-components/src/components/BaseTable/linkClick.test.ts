@@ -3,7 +3,7 @@ import type { ColumnOptions } from '../../types'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import { afterEach, expect, it, vi } from 'vitest'
-import { defineComponent, h, ref } from 'vue'
+import { defineComponent, h } from 'vue'
 import BaseTable from './index.vue'
 
 enableAutoUnmount(afterEach)
@@ -32,8 +32,7 @@ it.each([
 
   const link = wrapper.findAll(linkSelector).find(cell => cell.text() === text)
   expect(link).toBeDefined()
-  expect(link!.element.tagName).toBe('BUTTON')
-  expect(link!.attributes('type')).toBe('button')
+  expect(link!.element.tagName).toBe('SPAN')
   await link!.trigger('click')
 
   expect(wrapper.emitted('onLinkClick')).toEqual([[row, expect.objectContaining({ property, label })]])
@@ -52,37 +51,12 @@ it.each([undefined, '', '  '])('空白值 %j 只显示占位符', async (value) 
   for (const cell of wrapper.findAll(cells)) {
     expect(cell.text()).toBe('--')
     expect(cell.find('button, .link_row, [tabindex]').exists()).toBe(false)
-    await cell.get('span').trigger('click')
+    await cell.get('span:not(:has(*))').trigger('click')
   }
   expect(wrapper.emitted('onLinkClick')).toBeUndefined()
 })
 
-it('自定义组件已经提供按钮时沿用该按钮触发列事件', async () => {
-  const CustomButton = defineComponent({
-    inheritAttrs: false,
-    setup(_, { slots }) {
-      return () => h('button', { type: 'button' }, slots.default?.())
-    },
-  })
-  const row = { id: 1, sourceCode: 'SRC-01' }
-  const fetchApi = async () => ({ data: { data: { records: [row], total: 1 } } })
-  const wrapper = mount(BaseTable, {
-    props: {
-      columns: [{ prop: 'sourceCode', label: '来源单号', render: record => ({ el: CustomButton, type: 'link', text: record.sourceCode }) }],
-      fetchApi,
-      showSearchBar: false,
-    },
-    global: { plugins: [ElementPlus] },
-  })
-  const cell = '.el-table__body-wrapper tbody td:last-child'
-  await vi.waitFor(() => expect(wrapper.get(cell).text()).toBe('SRC-01'))
-
-  expect(wrapper.get(cell).findAll('button, [tabindex="0"]')).toHaveLength(1)
-  await wrapper.get(`${cell} button`).trigger('click')
-  expect(wrapper.emitted('onLinkClick')).toEqual([[row, expect.objectContaining({ property: 'sourceCode' })]])
-})
-
-it('无 href 的外层 a 作为单一可聚焦动作，保留自定义数值文字', async () => {
+it('自定义 a 保留自己的属性，仅点击内部链接文本时发出列事件', async () => {
   const row = { id: 1, sourceCode: 0 }
   const fetchApi = async () => ({ data: { data: { records: [row], total: 1 } } })
   const wrapper = mount(BaseTable, {
@@ -93,19 +67,16 @@ it('无 href 的外层 a 作为单一可聚焦动作，保留自定义数值文�
     },
     global: { plugins: [ElementPlus] },
   })
-  const cell = '.el-table__body-wrapper tbody td:last-child'
-  await vi.waitFor(() => expect(wrapper.get(cell).text()).toBe('0'))
-
-  const anchor = wrapper.get(`${cell} a`)
+  const selector = 'td:last-child a'
+  await vi.waitFor(() => expect(wrapper.get(selector).text()).toBe('0'))
+  const anchor = wrapper.get(selector)
+  expect(anchor.attributes('tabindex')).toBeUndefined()
+  expect(anchor.attributes('role')).toBeUndefined()
   expect(anchor.find('button').exists()).toBe(false)
-  expect(anchor.attributes()).toMatchObject({ role: 'button', tabindex: '0' })
-  await anchor.trigger('keydown', { key: 'Enter' })
-  await anchor.trigger('keydown', { key: ' ' })
-  await anchor.trigger('keyup', { key: ' ' })
-  expect(wrapper.emitted('onLinkClick')).toEqual([
-    [row, expect.objectContaining({ property: 'sourceCode' })],
-    [row, expect.objectContaining({ property: 'sourceCode' })],
-  ])
+  await anchor.trigger('click')
+  expect(wrapper.emitted('onLinkClick')).toBeUndefined()
+  await anchor.get('.link_row').trigger('click')
+  expect(wrapper.emitted('onLinkClick')).toEqual([[row, expect.objectContaining({ property: 'sourceCode' })]])
 })
 
 it('空链接文本保留自带操作的包装按钮', async () => {
@@ -155,55 +126,4 @@ it('包装组件内的独立操作不触发链接事件', async () => {
   expect(wrapper.emitted('onLinkClick')).toBeUndefined()
   await wrapper.get(`${cell} .link_row`).trigger('click')
   expect(wrapper.emitted('onLinkClick')).toEqual([[row, expect.objectContaining({ property: 'code' })]])
-})
-
-it('包装组件成为可聚焦的控件后移除内部按钮', async () => {
-  const enabled = ref(false)
-  const Wrapper = defineComponent({
-    setup(_, { slots }) {
-      return () => h('div', enabled.value ? { role: 'button', tabindex: 0 } : {}, slots.default?.())
-    },
-  })
-  const row = { id: 1, code: 'ZD-01' }
-  const fetchApi = async () => ({ data: { data: { records: [row], total: 1 } } })
-  const wrapper = mount(BaseTable, {
-    props: {
-      columns: [{ prop: 'code', label: '单号', render: record => ({ el: Wrapper, type: 'link', text: record.code }) }],
-      fetchApi,
-      showSearchBar: false,
-    },
-    global: { plugins: [ElementPlus] },
-  })
-  const cell = 'td:last-child .cell'
-  await vi.waitFor(() => expect(wrapper.get(`${cell} button`).text()).toBe('ZD-01'))
-
-  enabled.value = true
-  await vi.waitFor(() => expect(wrapper.get(cell).find('button').exists()).toBe(false))
-  await wrapper.get(`${cell} [role="button"]`).trigger('click')
-  expect(wrapper.emitted('onLinkClick')).toEqual([[row, expect.objectContaining({ property: 'code' })]])
-})
-
-it('包装节点获得 href 后保留调用方的新属性及原生行为', async () => {
-  const href = ref('')
-  const row = { id: 1, code: 'ZD-01' }
-  const fetchApi = async () => ({ data: { data: { records: [row], total: 1 } } })
-  const wrapper = mount(BaseTable, {
-    props: {
-      columns: [{
-        prop: 'code',
-        label: '单号',
-        render: record => ({ el: 'a', type: 'link', text: record.code, ...(href.value ? { href: href.value, role: 'link', tabindex: 3 } : {}) }),
-      }],
-      fetchApi,
-      showSearchBar: false,
-    },
-    global: { plugins: [ElementPlus] },
-  })
-  const selector = 'td:last-child .cell a'
-  await vi.waitFor(() => expect(wrapper.get(selector).attributes('role')).toBe('button'))
-
-  href.value = '#detail'
-  await vi.waitFor(() => expect(wrapper.get(selector).attributes()).toMatchObject({ href: '#detail', role: 'link', tabindex: '3' }))
-  await wrapper.get(selector).trigger('keydown', { key: 'Enter' })
-  expect(wrapper.emitted('onLinkClick')).toBeUndefined()
 })

@@ -90,7 +90,7 @@ ColumnOptions[] ─────────┼── BaseTable ─────�
 | `sortable` | `1` | `0` = 关闭该列排序。注意默认是**开**的 |
 | `span` | `1` | `2` = 表单项跨两列（弹窗两列网格下独占一行；单列模式自动失效） |
 | `width` / `fixed` / `align` | — | 原样透传给 `el-table-column` |
-| `type` | — | `'link'` 将非空文本渲染为链接样式的按钮，激活时触发 `onLinkClick` |
+| `type` | — | `'link'` 将非空文本显示为可点击的链接，点击时触发 `onLinkClick` |
 | `render` | — | 自定义渲染函数，**表格与详情弹窗共用** |
 | `formSlot` / `formSlotName` | `0` / `prop` | `1` = 该表单项整体交给具名插槽自己渲染 |
 | `renderOptions` | — | 搜索 / 表单控件的配置，见下 |
@@ -359,13 +359,13 @@ data = res?.data?.data?.records ?? res?.data?.data ?? []
 | 事件 | 参数 | 触发时机 |
 | --- | --- | --- |
 | `refreshChange` | — | 用户点了工具栏的刷新按钮 |
-| `onLinkClick` | `(row, column)` | 用鼠标或键盘激活 `type: 'link'` 单元格，或激活 `render` 返回的链接 |
+| `onLinkClick` | `(row, column)` | 点击默认链接或 `render` 返回的链接文字 |
 | `onSearchReset` | — | 用户点了搜索区的「重置」 |
 
 在模板中使用 `@on-link-click="onView"`。`row` 是当前行数据，`column` 是 Element Plus 表格插槽提供的 `scope.column`。
 `column.property` 对应列配置的 `prop`，可以用它区分同一张表上的多个链接列。已有只接收 `row` 的监听函数可以继续使用。
 
-表格生成的链接按钮支持 Tab、Enter 和 Space。链接文本为空时显示 `--`，不发出事件。`render` 提供的包装节点保留，已有按钮或真实链接沿用其自身的键盘行为。
+默认链接为可点击文本。空文本显示普通占位符 `--`。`render` 返回 `type: 'link'` 时，点击文字触发列事件，外层元素的键盘行为由自定义渲染决定。
 
 ```ts
 function onView(row: AnyKey, column: AnyKey) {
