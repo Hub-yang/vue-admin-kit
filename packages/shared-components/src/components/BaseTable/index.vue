@@ -9,6 +9,7 @@ import { pickListData } from '../../config/response'
 import { compMatchText } from '../../utils/componentApi'
 import { BaseSearchBox } from '../BaseSearchBox'
 import RenderCell from './RenderCell.vue'
+import TableLink from './TableLink.vue'
 
 interface ExpandProps {
   label?: string
@@ -56,7 +57,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'refreshChange'): void
-  (e: 'onLinkClick', rowData: AnyKey): void
+  (e: 'onLinkClick', row: AnyKey, col: AnyKey): void
   (e: 'onSearchReset'): void
 }>()
 
@@ -438,9 +439,15 @@ defineExpose<TableExpose>({
                   :render="column.render"
                   :row="scope.row"
                   :col="scope.column"
-                  @link-click="$emit('onLinkClick', scope.row)"
+                  table-link
+                  @link-click="$emit('onLinkClick', scope.row, scope.column)"
                 />
-                <span v-else :class="[column.type === 'link' && !!matchCellText(scope.row, column) ? 'link_row' : '']" @click="column.type === 'link' ? $emit('onLinkClick', scope.row) : null">{{ matchCellText(scope.row, column) || '--' }}</span>
+                <TableLink
+                  v-else-if="column.type === 'link'"
+                  :text="matchCellText(scope.row, column)"
+                  @activate="$emit('onLinkClick', scope.row, scope.column)"
+                />
+                <span v-else>{{ matchCellText(scope.row, column) || '--' }}</span>
               </template>
             </el-table-column>
 

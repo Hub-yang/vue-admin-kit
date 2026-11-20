@@ -158,7 +158,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 - **纯函数与「用测试守约定」的源码扫描**——校验规则、表单规则构造、响应解析、类名前缀
   一致性、模板结构不变量
-- **`BaseTable` 的渲染测试**——取数与分页、选中态清零，以及字典选项晚到或改名后的单元格更新
+- **`BaseTable` 的渲染测试**覆盖取数与分页、选中态清零、字典回显，以及默认和自定义链接的[激活行为与事件参数](packages/shared-components/README.md#emits)
 
 涉及组件交互的改动还需在消费方页面复验。
 

@@ -90,7 +90,7 @@ ColumnOptions[] ─────────┼── BaseTable ─────�
 | `sortable` | `1` | `0` = 关闭该列排序。注意默认是**开**的 |
 | `span` | `1` | `2` = 表单项跨两列（弹窗两列网格下独占一行；单列模式自动失效） |
 | `width` / `fixed` / `align` | — | 原样透传给 `el-table-column` |
-| `type` | — | 目前只有 `'link'`：单元格变成可点文本，点击 emit `onLinkClick` |
+| `type` | — | `'link'` 将非空文本渲染为链接样式的按钮，激活时触发 `onLinkClick` |
 | `render` | — | 自定义渲染函数，**表格与详情弹窗共用** |
 | `formSlot` / `formSlotName` | `0` / `prop` | `1` = 该表单项整体交给具名插槽自己渲染 |
 | `renderOptions` | — | 搜索 / 表单控件的配置，见下 |
@@ -359,8 +359,22 @@ data = res?.data?.data?.records ?? res?.data?.data ?? []
 | 事件 | 参数 | 触发时机 |
 | --- | --- | --- |
 | `refreshChange` | — | 用户点了工具栏的刷新按钮 |
-| `onLinkClick` | `rowData` | 点了 `type: 'link'` 的单元格（或 `render` 产物里 `type: 'link'` 的节点） |
+| `onLinkClick` | `(row, column)` | 用鼠标或键盘激活 `type: 'link'` 单元格，或激活 `render` 返回的链接 |
 | `onSearchReset` | — | 用户点了搜索区的「重置」 |
+
+在模板中使用 `@on-link-click="onView"`。`row` 是当前行数据，`column` 是 Element Plus 表格插槽提供的 `scope.column`。
+`column.property` 对应列配置的 `prop`，可以用它区分同一张表上的多个链接列。已有只接收 `row` 的监听函数可以继续使用。
+
+表格生成的链接按钮支持 Tab、Enter 和 Space。链接文本为空时显示 `--`，不发出事件。`render` 提供的包装节点保留，已有按钮或真实链接沿用其自身的键盘行为。
+
+```ts
+function onView(row: AnyKey, column: AnyKey) {
+  if (column.property === 'orderCode')
+    openOrderDetail(row.orderCode)
+  else if (column.property === 'sourceCode')
+    openSourceDetail(row.sourceCode)
+}
+```
 
 #### Slots
 
@@ -976,7 +990,7 @@ pnpm --filter @huberyyang/shared-components typecheck  # vue-tsc --noEmit
 | --- | --- |
 | 纯函数 | `validate` / `formRules` / `response` / `fileValidation` / `componentApi` |
 | 源码扫描（守形态不变量） | `classPrefix` / `selectorScope` / `detailText` / `titleClick` / `resetTransition` |
-| **渲染测试**（真挂载组件） | **只有 `BaseTable`**：取数与分页、选中态清零契约 |
+| **渲染测试**（真挂载组件） | `BaseTable` 的取数与分页、选中态清零、字典回显、链接事件参数、空文本及自定义包装交互 |
 
 ⚠️ **`BaseAddEditDialog` / `BaseSearchBox` / 其余组件是零渲染覆盖**，这是已知且接受的状态
 （`20260911b` 拍板：用到有问题再补）。改它们时静态检查全绿**不代表行为没坏**，
