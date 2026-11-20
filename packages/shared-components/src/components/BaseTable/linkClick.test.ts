@@ -13,7 +13,7 @@ const columns: ColumnOptions[] = [
   {
     prop: 'sourceCode',
     label: '来源单号',
-    render: row => ({ el: 'span', type: 'link', text: row.sourceCode }),
+    render: row => ({ el: 'span', type: 'link', text: row.displayCode }),
   },
 ]
 
@@ -21,7 +21,7 @@ it.each([
   { text: 'ORD-01', property: 'orderCode', label: '服务单号' },
   { text: 'SRC-01', property: 'sourceCode', label: '来源单号' },
 ])('点击$label时发出该行和 Element Plus 列对象', async ({ text, property, label }) => {
-  const row = { id: 1, orderCode: 'ORD-01', sourceCode: 'SRC-01' }
+  const row = { id: 1, orderCode: 'ORD-01', sourceCode: null, displayCode: 'SRC-01' }
   const fetchApi = async () => ({ data: { data: { records: [row], total: 1 } } })
   const wrapper = mount(BaseTable, {
     props: { columns, fetchApi, showSearchBar: false },
@@ -38,8 +38,8 @@ it.each([
   expect(wrapper.emitted('onLinkClick')).toEqual([[row, expect.objectContaining({ property, label })]])
 })
 
-it.each([undefined, '', '  '])('空白值 %j 只显示占位符', async (value) => {
-  const row = { id: 1, orderCode: value, sourceCode: value }
+it.each([null, undefined, '', '  ', '--', ' -- '])('空白值 %j 只显示占位符', async (value) => {
+  const row = { id: 1, orderCode: value, sourceCode: 'SRC-01', displayCode: value }
   const fetchApi = async () => ({ data: { data: { records: [row], total: 1 } } })
   const wrapper = mount(BaseTable, {
     props: { columns, fetchApi, showSearchBar: false, index: false },
@@ -54,6 +54,25 @@ it.each([undefined, '', '  '])('空白值 %j 只显示占位符', async (value) 
     await cell.get('span:not(:has(*))').trigger('click')
   }
   expect(wrapper.emitted('onLinkClick')).toBeUndefined()
+})
+
+it('普通列和自定义列都允许点击数值零', async () => {
+  const row = { id: 1, orderCode: 0, sourceCode: null, displayCode: 0 }
+  const fetchApi = async () => ({ data: { data: { records: [row], total: 1 } } })
+  const wrapper = mount(BaseTable, {
+    props: { columns, fetchApi, index: false, showSearchBar: false },
+    global: { plugins: [ElementPlus] },
+  })
+  const cells = '.el-table__body-wrapper tbody td .cell'
+  await vi.waitFor(() => expect(wrapper.findAll(cells)).toHaveLength(2))
+  for (const cell of wrapper.findAll(cells)) {
+    expect(cell.get('.link_row').text()).toBe('0')
+    await cell.get('.link_row').trigger('click')
+  }
+  expect(wrapper.emitted('onLinkClick')).toEqual([
+    [row, expect.objectContaining({ property: 'orderCode' })],
+    [row, expect.objectContaining({ property: 'sourceCode' })],
+  ])
 })
 
 it('自定义 a 保留自己的属性，仅点击内部链接文本时发出列事件', async () => {

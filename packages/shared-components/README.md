@@ -365,7 +365,7 @@ data = res?.data?.data?.records ?? res?.data?.data ?? []
 在模板中使用 `@on-link-click="onView"`。`row` 是当前行数据，`column` 是 Element Plus 表格插槽提供的 `scope.column`。
 `column.property` 对应列配置的 `prop`，可以用它区分同一张表上的多个链接列。已有只接收 `row` 的监听函数可以继续使用。
 
-默认链接为可点击文本。空文本显示普通占位符 `--`。`render` 返回 `type: 'link'` 时，点击文字触发列事件，外层元素的键盘行为由自定义渲染决定。
+默认链接为可点击文本。默认列与自定义文本链接按最终显示值判断。空值、空白和去除首尾空白后的 `--` 显示为普通占位符，点击不会触发列事件。数值 `0` 可正常点击。`render` 返回 `type: 'link'` 时，点击文字触发列事件，外层元素的键盘行为由自定义渲染决定。
 
 ```ts
 function onView(row: AnyKey, column: AnyKey) {

@@ -11,9 +11,8 @@ const emit = defineEmits<{
 }>()
 
 const hasText = computed(() => {
-  if (typeof props.text === 'string')
-    return props.text.trim().length > 0
-  return props.wrapper ? props.text != null : !!props.text
+  const text = typeof props.text === 'string' ? props.text.trim() : props.text
+  return text != null && text !== '' && text !== '--'
 })
 const wrapperProps = computed(() => {
   const attrs = { ...props.wrapper }
