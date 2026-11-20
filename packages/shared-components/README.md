@@ -2,7 +2,7 @@
 
 面向「CRUD 管理后台」的 Vue 3 组件库。核心是一条约定：**一份 `columns` 配置同时驱动搜索区、表格、新增/编辑表单、详情弹窗四处渲染**，页面只写数据来源和业务动作。
 
-> 消费方按本文档接入，并遵循自己仓库的规则。组件源码和发布记录在 [vue-admin-kit](https://github.com/Hub-yang/vue-admin-kit) 维护。同目录的 [CLAUDE.md](CLAUDE.md) 保留历史开发约定，所引用的 `.docs/` 属于 gcc-workspace。
+> 消费方按本文档接入，并遵循自己仓库的规则。组件源码和发布记录在 [vue-admin-kit](https://github.com/Hub-yang/vue-admin-kit) 维护。
 
 ## 目录
 
@@ -59,28 +59,9 @@ import { BaseAddEditDialog, BaseBtn, BaseTable, withConfirm } from '@huberyyang/
 
 包另外导出了 `./styles/*` 子路径（可以 `@use '@huberyyang/shared-components/styles/common.scss'`），当前没有任何消费方——正常接入用不到它。
 
-### 用 BaseTable 的应用必须提供两条容器声明
+### BaseTable 卡片边框
 
-表格卡片的上、左边框**由消费方容器裁决，共享包不画**，契约是两个沿 DOM 继承的自定义属性。应用的 `src/styles/element-ui.scss` 里要有：
-
-```scss
-// 列表页容器：左缘竖线由侧边栏的 border-right 画，顶边由标签栏的 border-bottom 画
-.page-layout__main,
-.page-layout__aside {
-  --app-table-card-left-border: none;
-  --app-table-card-top-border: none;
-}
-
-// 弹窗 / 内缩容器：回落到 el-card 自己的边框
-.el-dialog,
-.el-drawer,
-.page-inset {
-  --app-table-card-left-border: initial;
-  --app-table-card-top-border: initial;
-}
-```
-
-`gcc-saber3` 与 `gcc-template` 都已带这两段，**从 `gcc-template` 起步的新模块不用管**。从零接入的应用漏了它，列表页会在标签栏下边框旁边多画一条、变成 2px，且不报任何错。机制见 `CLAUDE.md`「BaseTable 卡片的上/左边框由消费方容器裁决」。
+侧栏或标签栏已经绘制同侧边线时，可在应用的列表容器内为 `.sc-base_table_con .el-card` 覆盖对应的 `border-top` 或 `border-left`。将覆盖限定在列表布局，弹窗和内缩容器保留原有边框。
 
 ## 核心心智：一份 columns 驱动四处渲染
 
@@ -1001,8 +982,7 @@ pnpm --filter @huberyyang/shared-components typecheck  # vue-tsc --noEmit
 （`20260911b` 拍板：用到有问题再补）。改它们时静态检查全绿**不代表行为没坏**，
 要在真实页面上点一遍。
 
-⚠️ 写新的渲染测试前，先读同目录 `CLAUDE.md` 的「组件渲染测试：两条环境契约」——
-element-plus 必须被 vitest inline 编译，否则连 `el-button` 都挂不上，而报错完全看不出真因。
+组件挂载测试在消费方工作区运行。Vitest 通过 `@vitejs/plugin-vue` 编译 Vue 单文件组件，渲染用例使用 `happy-dom`。将 `element-plus` 加入 `test.server.deps.inline`，使组件与测试共用同一套 Vue 运行时。
 
 **当前没有消费方的能力**（可以用，但仓库里没有活的参照，接入时请自行验证）：
 
@@ -1019,5 +999,3 @@ element-plus 必须被 vitest inline 编译，否则连 `el-button` 都挂不上
 | `BaseTable` 的 `sortable` 排序链路 | 事件已透传，但没有页面开过排序 |
 | `./styles/*` 子路径导出 | 无消费方，样式都是随组件带进去的 |
 | `rowKey` prop | 见 [BaseTable](#basetable)：传了不生效 |
-
-**要改这个包的时候**，先读同目录的 `CLAUDE.md`——那里记着样式契约（表格卡片的边框由谁画、搜索区那五处 20px 留白靠哪四条规则维持）、几次返工的根因，以及「成例先在本仓库找，zd-workspace 那份要用户点头才去翻、且绝不回改」这条纪律。本文档不重复那些内容。

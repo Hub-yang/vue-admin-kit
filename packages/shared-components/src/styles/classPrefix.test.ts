@@ -58,8 +58,7 @@ function isDefined(cls: string, defined: Set<string>): boolean {
 /**
  * 把 SCSS 的 `&__elem` / `&--mod` 嵌套展开成完整类名。
  *
- * 根 CLAUDE.md 要求样式块内部用嵌套写而不是平铺完整 BEM 类名，于是
- * `.sc-pwd-strength { &__bar {} }` 这样的定义在源码里找不到 `sc-pwd-strength__bar` 字面量。
+ * `.sc-pwd-strength { &__bar {} }` 这样的嵌套写法在源码里找不到 `sc-pwd-strength__bar` 字面量。
  * 这里对块名与后缀做笛卡尔拼接——**故意放宽**：本测试要抓的是「模板里写了、样式里压根没有」，
  * 不是精确的作用域分析，宁可多认几个也不要为嵌套写法误报。
  */

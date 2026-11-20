@@ -253,7 +253,7 @@ function clearRowSelection() {
  *
  * 下面两条刷新路径都会 bump `refreshKey` 让 el-table 整体重挂，内部选中态随之清空，
  * **但重挂本身不会触发 `selection-change`**。各消费页按约定用 `@selection-change` 自持
- * `selectionList`（见 packages/shared-components/CLAUDE.md 与 apps/gcc-saber3/CLAUDE.md §4.1），
+ * `selectionList`，
  * 不补发这一下，它们手里就留着一批表格上已看不到勾选的行——批量删除按钮仍然可点，
  * 点下去删的正是用户以为没选中的数据。**两条路径都要调，少一条就是这个缺陷本身。**
  */

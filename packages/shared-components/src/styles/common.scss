@@ -98,9 +98,7 @@
 
   .el-card {
     border-radius: 0;
-    // 刻意不写 border-top：上边框由消费方经继承的 --app-table-card-top-border 给
-    // （与 --app-table-card-left-border 对称，都声明在各应用 styles/element-ui.scss）。
-    // 写死 border-top: none 会让弹窗 / 内缩容器里那条线断掉，且不报错
+    // 边框沿用 el-card 默认值，列表页如有叠线，由应用在对应容器内覆盖。
   }
 
   .base_table_card {

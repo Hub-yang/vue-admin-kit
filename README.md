@@ -203,6 +203,10 @@ devDependencies 还需要 `vitest`、`@vue/test-utils`、`happy-dom`、`@vitejs/
 - **包里不持有任何项目身份**。应用名、品牌色都由接入方给（`BaseHeader` 的 `title` prop、
   `--primary` CSS 变量）
 
+- **表单格式校验按 `rule.required` 处理空值。** 邮箱、手机和身份证校验器对选填空值放行，对必填空值给出提示。自定义 `validator` 接手该字段的空值和格式校验。
+- **新增工具导出时，同时接入实际使用它的调用方。** 新增的布尔校验函数在输入合法时返回 `true`。
+- **UnoCSS 原子类和快捷类通过 `class` 应用。** 默认的 attributify 预设只处理带 `un-` 前缀的属性，裸属性与生成的类选择器无法匹配。应用扩展预设时用 `createUnoConfig()` 合并配置。
+
 ## License
 
 MIT
