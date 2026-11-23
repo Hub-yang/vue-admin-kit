@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isString } from 'lodash-es'
 import { computed } from 'vue'
 
 const props = defineProps<{
@@ -11,7 +12,7 @@ const emit = defineEmits<{
 }>()
 
 const hasText = computed(() => {
-  const text = typeof props.text === 'string' ? props.text.trim() : props.text
+  const text = isString(props.text) ? props.text.trim() : props.text
   return text != null && text !== '' && text !== '--'
 })
 const wrapperProps = computed(() => {
