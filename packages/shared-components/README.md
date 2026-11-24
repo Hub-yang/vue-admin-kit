@@ -683,6 +683,7 @@ const selectedData = computed(() => tableRef.value?.getRowSelection())
 
 ```vue
 <BaseExportButton :export-api="exportPost" :params="query" file-name="岗位数据.xls" />
+<BaseExportButton :export-api="exportOrders" :query-snapshot="exportParams" file-name="工单.xls" />
 ```
 
 ```ts
@@ -697,6 +698,7 @@ export function exportPost(params) {
 | `exportApi` | `(params?: AnyKey) => Promise<any>` | **必填** | 由调用方注入已挂 token / 拦截器的请求，**需自行设置 `responseType: 'blob'`** |
 | `fileName` | `string` | **必填** | 下载后的文件名，含扩展名 |
 | `params` | `AnyKey` | — | 透传给 `exportApi` |
+| `querySnapshot` | `AnyKey \| null` | `undefined` | 可选的本次查询参数快照；提供时优先于 `params` |
 | `text` | `string` | `'导出数据'` | 按钮文案 |
 | `disabled` | `boolean` | `false` | — |
 
@@ -704,7 +706,9 @@ export function exportPost(params) {
 
 > 早先它是 `exportOption.url` + 包内裸 axios 直发，拿不到鉴权头，在任何需要登录的后端上都下载不下来——这正是它长期零消费的原因。同批把 `exportBlob` 删掉后，`shared-components` 已不再依赖 axios。
 
-> 当前仓库里没有任何页面在用这个组件，上面的行为来自源码，未经端到端验证。
+普通导出可传 `params` 或省略参数。按查询结果导出时，由调用方在查询开始时传 `null`，最新查询成功且结果允许导出时传入新对象。将其视为只读快照，即使查询条件相同，重查成功也要更换对象。
+
+快照模式在点确认时核对快照、接口、文件名、禁用状态和组件是否仍挂载；过期确认直接结束。已经发出的请求使用点击时的文件名完成下载。两种用法都支持独立挂载。
 
 ---
 
@@ -1007,7 +1011,7 @@ pnpm --filter @huberyyang/shared-components typecheck  # vue-tsc --noEmit
 
 | 能力 | 状态 |
 | --- | --- |
-| `BaseExportButton` / `BaseImportButton` | 无消费方，行为仅有单测覆盖、未经端到端验证 |
+| `BaseImportButton` | 无消费方，行为仅有单测覆盖、未经端到端验证 |
 | `BaseMenu` / `BaseMenuLayout` / `TransitionRouterView` | 无消费方 |
 | `useEditListPageRender` | 无消费方，列表页都是手写的 |
 | `BaseTable` 的 `sortable` 排序链路 | 事件已透传，但没有页面开过排序 |

@@ -1,6 +1,6 @@
 <script setup lang='ts'>
 import { ElMessage } from 'element-plus'
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import { downloadXls, withConfirm } from '../../utils'
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
   fileName: string
   /** 透传给 exportApi 的查询参数 */
   params?: AnyKey
+  /** 省略时使用 params；null 禁用导出，每次有效查询传入一份新的参数对象。 */
+  querySnapshot?: AnyKey | null
   text?: string // 按钮文本，默认'导出数据'
   disabled?: boolean
 }
@@ -24,18 +26,33 @@ const props = withDefaults(defineProps<Props>(), {
 
 const loading = ref(false)
 
-async function onExport() {
+let unmounted = false
+onBeforeUnmount(() => {
+  unmounted = true
+})
+
+/** 查询快照将用户的确认绑定到点击时的业务和参数，过期确认直接结束。 */
+function onExport() {
+  const { querySnapshot, exportApi, fileName } = props
+  if (props.disabled || querySnapshot === null)
+    return
+
   withConfirm({
     label: '导出当前数据',
     onConfirm: async () => {
+      if (querySnapshot !== props.querySnapshot)
+        return
+      if (querySnapshot && (unmounted || props.disabled || exportApi !== props.exportApi || fileName !== props.fileName))
+        return
+
       loading.value = true
       try {
-        const res = await props.exportApi(props.params)
+        const res = await props.exportApi(querySnapshot ?? props.params)
         if (!res?.data) {
           ElMessage.error('下载失败，请重试')
           return false
         }
-        downloadXls(res.data, props.fileName)
+        downloadXls(res.data, querySnapshot ? fileName : props.fileName)
       }
       catch (error) {
         console.error(`${error}`)
@@ -50,7 +67,7 @@ async function onExport() {
 </script>
 
 <template>
-  <el-button type="success" icon="i-ep-download" :loading :disabled="disabled" @click="onExport">
+  <el-button type="success" icon="i-ep-download" :loading :disabled="disabled || querySnapshot === null" @click="onExport">
     {{ text || '导出数据' }}
   </el-button>
 </template>
